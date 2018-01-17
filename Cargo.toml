@@ -1,0 +1,7 @@
+[package]
+name = "argdata"
+version = "0.0.1"
+authors = ["Mara Bos <m-ou.se@m-ou.se>"]
+
+[dependencies]
+byteorder = "1"
