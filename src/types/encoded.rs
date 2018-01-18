@@ -3,11 +3,14 @@ use std::convert::TryFrom;
 use std;
 
 use Argdata;
+use ArgdataValue;
 use BigInt;
 use IntValue;
+use Map;
 use NoFit;
 use NotRead;
 use ReadError;
+use Seq;
 use Timespec;
 use Type;
 
@@ -72,8 +75,19 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 		}
 	}
 
-	// TODO: map (6)
-	// TODO: seq (7)
+	fn read_map(&'a self) -> Result<&'a Map<'a>, NotRead> {
+		match self.0.first() {
+			Some(&6) => Ok(self),
+			_ => Err(NoFit::DifferentType.into()),
+		}
+	}
+
+	fn read_seq(&'a self) -> Result<&'a Seq<'a>, NotRead> {
+		match self.0.first() {
+			Some(&7) => Ok(self),
+			_ => Err(NoFit::DifferentType.into()),
+		}
+	}
 
 	fn read_str(&'a self) -> Result<&'a str, NotRead> {
 		match self.0.split_first() {
@@ -130,4 +144,65 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 		buf.copy_from_slice(self.0);
 	}
 
+}
+
+impl<'a> EncodedArgdata<'a> {
+	fn iter_subfield_next(&self, tag: u8, offset: &mut usize) -> Option<Result<ArgdataValue<'a>, ReadError>> {
+		let data = self.0;
+		if data.get(0) != Some(&tag) { return None }
+		let (result, offset_delta) = read_subfield(&data[1 + *offset..]);
+		*offset += offset_delta;
+		result.map(|r| r.map(|d| ArgdataValue::Encoded(EncodedArgdata(d))))
+	}
+}
+
+impl<'a> Seq<'a> for EncodedArgdata<'a> {
+	fn iter_seq_next(&self, offset: &mut usize) -> Option<Result<ArgdataValue<'a>, ReadError>> {
+		self.iter_subfield_next(7, offset)
+	}
+}
+
+impl<'a> Map<'a> for EncodedArgdata<'a> {
+	fn iter_map_next(&self, offset: &mut usize) -> Option<Result<(ArgdataValue<'a>, ArgdataValue<'a>), ReadError>> {
+		let key = match self.iter_subfield_next(6, offset) {
+			None => return None,
+			Some(Ok(v)) => v,
+			Some(Err(e)) => return Some(Err(e)),
+		};
+		match self.iter_subfield_next(6, offset) {
+			None => Some(Err(ReadError::InvalidKeyValuePair)),
+			Some(Ok(value)) => Some(Ok((key, value))),
+			Some(Err(e)) => Some(Err(e)),
+		}
+	}
+}
+
+fn read_subfield<'a>(data: &'a [u8]) -> (Option<Result<&'a [u8], ReadError>>, usize) {
+	if data.len() == 0 {
+		return (None, 0)
+	}
+
+	// Decode field size
+	let mut len_bytes: usize = 0;
+	let mut len: usize = 0;
+	loop {
+		let byte = match data.get(len_bytes) {
+			Some(&v) => v,
+			None => return (Some(Err(ReadError::InvalidSubfield)), data.len()),
+		};
+		len_bytes += 1;
+		if len > std::usize::MAX >> 7 {
+			return (Some(Err(ReadError::InvalidSubfield)), data.len());
+		}
+		len = len << 7 | (byte & 0x7F) as usize;
+		if byte >= 0x80 { break; }
+	}
+
+	// Get len bytes after the encoded length.
+	if len > data[len_bytes..].len() {
+		return (Some(Err(ReadError::InvalidSubfield)), data.len());
+	}
+	let field = &data[len_bytes..][..len];
+
+	(Some(Ok(field)), len_bytes + len)
 }

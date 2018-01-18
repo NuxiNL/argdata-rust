@@ -1,5 +1,6 @@
-use std::num::TryFromIntError;
 use std::convert::TryFrom;
+use std::fmt;
+use std::num::TryFromIntError;
 
 use BigInt;
 
@@ -118,6 +119,7 @@ impl<'a> PartialEq for IntValue<'a> {
 }
 
 impl<'a> Eq for IntValue<'a> {}
+*/
 
 impl<'a> fmt::Debug for IntValue<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -125,20 +127,15 @@ impl<'a> fmt::Debug for IntValue<'a> {
 			Inner::Unsigned(v) => write!(f, "{}", v),
 			Inner::Signed(v) => write!(f, "{}", v),
 			Inner::Big(ref d) => {
-				if d.len() == 0 {
-					write!(f, "0")
-				} else {
-					write!(f, "0x")?;
-					for byte in &d[..] {
-						write!(f, "{:02x}", byte)?;
-					}
-					Ok(())
+				write!(f, "0x")?;
+				for byte in &d[..] {
+					write!(f, "{:02X}", byte)?;
 				}
+				Ok(())
 			}
 		}
 	}
 }
-*/
 
 // TODO: update tests
 
