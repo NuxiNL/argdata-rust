@@ -1,16 +1,19 @@
 use byteorder::{ByteOrder, BigEndian};
-use std::time::SystemTime;
+use std::convert::TryFrom;
 use std;
 
 use Argdata;
+use BigInt;
 use IntValue;
+use NoFit;
 use NotRead;
 use ReadError;
+use Timespec;
 use Type;
 
-pub struct Encoded<'a>(pub &'a [u8]);
+pub struct EncodedArgdata<'a>(pub &'a [u8]);
 
-impl<'a> Argdata<'a> for Encoded<'a> {
+impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 
 	fn get_type(&'a self) -> Result<Type, ReadError> {
 		match self.0.first() {
@@ -31,14 +34,14 @@ impl<'a> Argdata<'a> for Encoded<'a> {
 	fn read_null(&'a self) -> Result<(), NotRead> {
 		match self.0.len() {
 			0 => Ok(()),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_binary(&'a self) -> Result<&'a [u8], NotRead> {
 		match self.0.split_first() {
 			Some((&8, data)) => Ok(data),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
@@ -47,7 +50,7 @@ impl<'a> Argdata<'a> for Encoded<'a> {
 			Some((&2, data)) if data == &[]  => Ok(false),
 			Some((&2, data)) if data == &[1] => Ok(true),
 			Some((&2, _)) => Err(NotRead::Error(ReadError::InvalidBoolValue)),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
@@ -58,14 +61,14 @@ impl<'a> Argdata<'a> for Encoded<'a> {
 			Some((&4, data)) if data.len() == 8 =>
 				Ok(f64::from_bits(BigEndian::read_u64(data))),
 			Some((&4, _)) => Err(NotRead::Error(ReadError::InvalidFloatLength)),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_int_value(&'a self) -> Result<IntValue<'a>, NotRead> {
 		match self.0.split_first() {
-			Some((&5, data)) => Ok(IntValue::from_bigint(data)),
-			_ => Err(NotRead::OtherType),
+			Some((&5, data)) => Ok(IntValue::from(BigInt(data))),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
@@ -81,55 +84,41 @@ impl<'a> Argdata<'a> for Encoded<'a> {
 					),
 				_ => Err(NotRead::Error(ReadError::MissingNullTerminator)),
 			}
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_timestamp(&'a self) -> Result<SystemTime, NotRead> {
+	fn read_timestamp(&'a self) -> Result<Timespec, NotRead> {
 		match self.0.split_first() {
 			Some((&9, data)) => {
 
 				// 12 bytes is enough for 2**64 seconds in nanoseconds.
 				if data.len() > 12 {
-					return Err(NotRead::Error(ReadError::TimestampOutOfRange));
+					return Err(ReadError::TimestampOutOfRange.into());
 				}
 
-				// Extract high 64 bits and lower 32 bits (sign extended).
+				// Read nanoseconds into an integer (128 bits are enough).
 				let sign = data.len() > 0 && data[0] >= 0x80;
-				let high = if sign { !0u64 } else { 0u64 };
-				let low = 0u32;
-				for (i, &b) in data.iter().enumerate() {
-					if i + 4 < data.len() {
-						high = high << 8 | b;
-					} else {
-						low = low << 8 | b;
-					}
+				let mut nsec = if sign { -1i128 } else { 1i128 };
+				for &b in data {
+					nsec = nsec << 8 | (b as i128);
 				}
 
-				let high = high as i64;
-				let low = low as u64;
-
-				let high_rem = high % 1_000_000_000;
-				high /= 1_000_000_000;
-				if high_rem < 0 {
-					high_rem += 1_000_000_000;
-					high += 1;
+				// Split seconds and nanoseconds
+				let mut sec = nsec / 1_000_000_000;
+				nsec %= 1_000_000_000;
+				if nsec < 0 {
+					nsec += 1_000_000_000;
+					sec -= 1;
 				}
 
-				if high < i32::min_value() as i64 || high > i32::max_value() as i64 {
-					return Err(NotRead::Error(ReadError::TimestampOutOfRange));
-				}
+				// Convert to i64 and i32, if it fits.
+				let sec: i64 = TryFrom::try_from(sec).map_err(|_| NotRead::Error(ReadError::TimestampOutOfRange))?;
+				let nsec = nsec as u32;
 
-				low += high_rem << 32;
-				let nsec = (low % 1_000_000_000) as u32;
-				low /= 1_000_000_000;
-
-				// TODO: check overflow
-				let sec = low + high << 32;
-
-				Ok(UNIX_EPOCH + Duration::new(secs, nsecs))
+				Ok(Timespec{sec, nsec})
 			}
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 

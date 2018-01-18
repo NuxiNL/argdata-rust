@@ -19,3 +19,15 @@ impl<'a> Argdata<'a> for Binary<'a> {
 		buf[1..].copy_from_slice(self.0);
 	}
 }
+
+/* TODO
+#[derive(Debug)]
+pub struct OwnedBinary<'a>(pub Vec<u8>);
+
+impl<'a> OwnedArgdata<'a> for OwnedBinary {
+	type Borrowed = Binary<'a>;
+	fn borrow(&'a self) -> Binary<'a> {
+		Binary(&self.0[..])
+	}
+}
+*/

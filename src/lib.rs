@@ -1,15 +1,21 @@
+#![feature(i128_type)]
 #![feature(try_from)]
 
 extern crate byteorder;
 
 use std::convert::TryFrom;
-use std::time::SystemTime;
 
 mod intvalue;
 pub use intvalue::IntValue;
 
+mod timespec;
+pub use timespec::Timespec;
+
 mod types;
 pub use types::*;
+
+#[cfg(target_os="cloudabi")]
+pub mod env;
 
 pub enum Type {
 	Null,
@@ -24,6 +30,8 @@ pub enum Type {
 	Seq,
 }
 
+
+
 pub enum Value<'a> {
 	Null,
 	Binary(&'a [u8]),
@@ -32,7 +40,8 @@ pub enum Value<'a> {
 	Float(f64),
 	Int(IntValue<'a>),
 	Str(&'a str),
-	Timestamp(SystemTime),
+	Timestamp(Timespec),
+	//Map(&'a MapTrait)
 	//Map(Map<'a>),
 	//Seq(Seq<'a>),
 }
@@ -76,18 +85,28 @@ pub enum ReadError {
 	/// The data represents a file descriptor, but wasn't exactly 32 bits.
 	InvalidFdLength,
 
-	/// The data represents a timestamp out of the range of SystemTime.
+	/// The data represents a timestamp that does not fit within a Timespec.
 	TimestampOutOfRange,
+}
+
+/// The reason why a read_*() call didn't return a value, when there was no read error.
+#[derive(Debug)]
+pub enum NoFit {
+
+	/// The value is too high or low to fit in the requested type.
+	OutOfRange,
+
+	/// The value seems to be of a different type.
+	DifferentType,
 }
 
 /// The reason why an Argdata::read_*() call didn't return a value.
 #[derive(Debug)]
 pub enum NotRead {
 
-	/// The value couldn't be read, because it seems to be of another type.
-	///
-	/// Another read_*() call probably works.
-	OtherType,
+	/// The value couldn't be read, because it wouldn't fit in the requested type.
+	/// (Because it the value is of a different type, or isn't big enough.)
+	NoFit(NoFit),
 
 	/// The value seems to be of the requested type, but it couldn't be read
 	/// because of an error.
@@ -99,6 +118,12 @@ pub enum NotRead {
 impl From<ReadError> for NotRead {
 	fn from(e: ReadError) -> NotRead {
 		NotRead::Error(e)
+	}
+}
+
+impl From<NoFit> for NotRead {
+	fn from(e: NoFit) -> NotRead {
+		NotRead::NoFit(e)
 	}
 }
 
@@ -121,7 +146,7 @@ pub trait Argdata<'a> {
 		match result {
 			Ok(v) => Ok(v),
 			Err(NotRead::Error(e)) => Err(e),
-			Err(NotRead::OtherType) => panic!("get_type() and read_<type>() are inconsistent"),
+			Err(NotRead::NoFit(_)) => panic!("get_type() and read_<type>() are inconsistent"),
 		}
 	}
 
@@ -132,21 +157,21 @@ pub trait Argdata<'a> {
 	fn read_null(&'a self) -> Result<(), NotRead> {
 		match self.read()? {
 			Value::Null => Ok(()),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_binary(&'a self) -> Result<&'a [u8], NotRead> {
 		match self.read()? {
 			Value::Binary(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_bool(&'a self) -> Result<bool, NotRead> {
 		match self.read()? {
 			Value::Bool(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
@@ -156,28 +181,30 @@ pub trait Argdata<'a> {
 	fn read_float(&'a self) -> Result<f64, NotRead> {
 		match self.read()? {
 			Value::Float(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_int_value(&'a self) -> Result<IntValue<'a>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_str(&'a self) -> Result<&'a str, NotRead> {
 		match self.read()? {
 			Value::Str(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_timestamp(&'a self) -> Result<SystemTime, NotRead> {
+	// TODO: read_timestamp_ns ? (to remove TimestampOutOfRange)
+
+	fn read_timestamp(&'a self) -> Result<Timespec, NotRead> {
 		match self.read()? {
 			Value::Timestamp(v) => Ok(v),
-			_ => Err(NotRead::OtherType),
+			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
@@ -209,7 +236,7 @@ impl<'a> Argdata<'a> {
 
 	pub fn read_int<T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
-			TryFrom::try_from(v).map_err(|_| NotRead::OtherType)
+			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
 	}
 
@@ -218,12 +245,9 @@ impl<'a> Argdata<'a> {
 fn _bla(_x: &Argdata<'static>) {}
 
 // TODO:
-// OwnedEncoded(&'a [u8])
-// Fd TODO
-// Int(Int<'a>)
-// Timestamp(Int<'a>)
-// Seq(&'a [&Argdata<'a>])
-// OwnedSeq(Vec<Box<Argdata<'a>>>)
+// Seq
 // Map
-// OwnedMap
-// .. ?
+// serialize() as a single function with Writer or something
+// Fd/Resource (template arg?)
+// Owned stuff (encoded, seq, map, binary, str, bigint, ..?)
+// Fix/update/make Tests

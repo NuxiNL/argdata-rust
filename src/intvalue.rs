@@ -1,3 +1,8 @@
+use std::num::TryFromIntError;
+use std::convert::TryFrom;
+
+use BigInt;
+
 #[derive(PartialEq, Eq)]
 pub struct IntValue<'a> {
 	inner: Inner<'a>
@@ -7,29 +12,11 @@ pub struct IntValue<'a> {
 enum Inner<'a> {
 	Unsigned(u64),
 	Signed(i64), // For negative numbers only.
-	Big(&'a [u8]), // Big endian 2's complement signed integer of arbitrary length, that doesn't fit into a i64 or u64.
+	Big(&'a [u8]), // Big-endian 2's-complement signed integer of arbitrary length, that doesn't fit into a i64 or u64.
 }
 
-// TODO: Replace completely by From and TryFrom implementations
-
-impl<'a> IntValue<'a> {
-
-	/// Convert an unsigned integer into an IntValue.
-	pub fn from_u64(value: u64) -> IntValue<'a> {
-		IntValue{ inner: Inner::Unsigned(value) }
-	}
-
-	/// Convert a signed integer into an IntValue.
-	pub fn from_i64(value: i64) -> IntValue<'a> {
-		if value < 0 {
-			IntValue{ inner: Inner::Signed(value) }
-		} else {
-			IntValue{ inner: Inner::Unsigned(value as u64) }
-		}
-	}
-
-	/// Convert a signed big-endian encoded integer into an IntValue.
-	pub fn from_bigint(mut data: &'a [u8]) -> IntValue<'a> {
+impl<'a> From<BigInt<'a>> for IntValue<'a> {
+	fn from(BigInt(mut data): BigInt<'a>) -> IntValue<'a> {
 		// If it is positive and fits in an u64, will make an Inner::Unsigned.
 		// If it is negative and fits in an i64, will make an Inner::Signed.
 		// Otherwise, will make an Inner::Big with the borrowed data, with
@@ -48,7 +35,7 @@ impl<'a> IntValue<'a> {
 			return IntValue{ inner: Inner::Big(data) };
 		}
 
-		let mut value: u64 = if sign { u64::max_value() } else { 0 };
+		let mut value: u64 = if sign { !0 } else { 0 };
 
 		for &byte in data {
 			value = value << 8 | byte as u64;
@@ -60,44 +47,59 @@ impl<'a> IntValue<'a> {
 			IntValue{ inner: Inner::Unsigned(value) }
 		}
 	}
-
-	/// Get the value as an u64 if it fits.
-	pub fn get_u64(&self) -> Option<u64> {
-		match self.inner {
-			Inner::Unsigned(v) => Some(v),
-			_ => None,
-		}
-	}
-
-	/// Get the value as an i64 if it fits.
-	pub fn get_i64(&self) -> Option<i64> {
-		match self.inner {
-			Inner::Unsigned(v) if v <= i64::max_value() as u64 => Some(v as i64),
-			Inner::Signed(v) => Some(v),
-			_ => None,
-		}
-	}
-
 }
 
-macro_rules! impl_from {
-	($t:ty, $s:ident) => {
+macro_rules! impl_s {
+	($t:ty) => {
 		impl<'a> From<$t> for IntValue<'a> {
 			fn from(value: $t) -> IntValue<'a> {
-				IntValue{ inner: Inner::$s(value.into()) }
+				if value < 0 {
+					IntValue{ inner: Inner::Signed(value.into()) }
+				} else {
+					IntValue{ inner: Inner::Unsigned(value as u64) }
+				}
+			}
+		}
+		impl<'a> TryFrom<IntValue<'a>> for $t {
+			type Error = TryFromIntError;
+			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
+				match value.inner {
+					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
+					Inner::Signed(v) => Ok(TryFrom::try_from(v)?),
+					_ => TryFrom::try_from(u64::max_value()), // Always fails
+				}
 			}
 		}
 	}
 }
 
-impl_from!(i8 , Signed);
-impl_from!(i16, Signed);
-impl_from!(i32, Signed);
-impl_from!(i64, Signed);
-impl_from!(u8 , Unsigned);
-impl_from!(u16, Unsigned);
-impl_from!(u32, Unsigned);
-impl_from!(u64, Unsigned);
+macro_rules! impl_u {
+	($t:ty) => {
+		impl<'a> From<$t> for IntValue<'a> {
+			fn from(value: $t) -> IntValue<'a> {
+				IntValue{ inner: Inner::Unsigned(value as u64) }
+			}
+		}
+		impl<'a> TryFrom<IntValue<'a>> for $t {
+			type Error = TryFromIntError;
+			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
+				match value.inner {
+					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
+					_ => TryFrom::try_from(-1), // Always fails
+				}
+			}
+		}
+	}
+}
+
+impl_s!(i8);
+impl_s!(i16);
+impl_s!(i32);
+impl_s!(i64);
+impl_u!(u8);
+impl_u!(u16);
+impl_u!(u32);
+impl_u!(u64);
 
 // TODO: Implement Ord and PartialOrd
 

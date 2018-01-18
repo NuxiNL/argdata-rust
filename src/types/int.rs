@@ -3,11 +3,14 @@ use IntValue;
 use ReadError;
 use Value;
 
+/// A big-endian 2's-complement signed arbitrary length integer.
+///
+/// Use IntValue::from(BigInt) for easy access to the integral value.
 pub struct BigInt<'a>(pub &'a [u8]);
 
 impl<'a> Argdata<'a> for BigInt<'a> {
 	fn read(&'a self) -> Result<Value<'a>, ReadError> {
-		Ok(Value::Int(IntValue::from_bigint(self.0)))
+		Ok(Value::Int(IntValue::from(BigInt(self.0))))
 	}
 
 	fn serialized_length(&self) -> usize {

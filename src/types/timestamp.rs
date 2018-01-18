@@ -1,11 +1,10 @@
-use std::time::SystemTime;
-
 use Argdata;
 use ReadError;
+use Timespec;
 use Value;
 
 #[derive(Debug)]
-pub struct Timestamp(pub SystemTime);
+pub struct Timestamp(pub Timespec);
 
 impl<'a> Argdata<'a> for Timestamp {
 	fn read(&'a self) -> Result<Value<'a>, ReadError> {
@@ -16,7 +15,7 @@ impl<'a> Argdata<'a> for Timestamp {
 		unimplemented!()
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
+	fn serialize_into(&self, _buf: &mut [u8]) {
 		unimplemented!()
 	}
 }
