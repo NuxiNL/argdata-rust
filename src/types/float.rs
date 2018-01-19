@@ -7,8 +7,8 @@ use Value;
 #[derive(Debug)]
 pub struct Float(pub f64);
 
-impl<'a> Argdata<'a> for Float {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl Argdata for Float {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Float(self.0))
 	}
 

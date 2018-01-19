@@ -6,8 +6,8 @@ use Value;
 #[derive(Debug)]
 pub struct Timestamp(pub Timespec);
 
-impl<'a> Argdata<'a> for Timestamp {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl Argdata for Timestamp {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Timestamp(self.0))
 	}
 

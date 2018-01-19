@@ -5,8 +5,8 @@ use Value;
 #[derive(Debug)]
 pub struct Bool(pub bool);
 
-impl<'a> Argdata<'a> for Bool {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl Argdata for Bool {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Bool(self.0))
 	}
 

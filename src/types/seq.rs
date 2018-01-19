@@ -7,10 +7,10 @@ use Seq;
 use Value;
 
 //#[derive(Debug)]
-pub struct SeqSlice<'a>(pub &'a [&'a Argdata<'a>]);
+pub struct SeqSlice<'a>(pub &'a [&'a (Argdata + 'a)]);
 
-impl<'a> Argdata<'a> for SeqSlice<'a> {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'b> Argdata for SeqSlice<'b> {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Seq(self))
 	}
 
@@ -23,9 +23,9 @@ impl<'a> Argdata<'a> for SeqSlice<'a> {
 	}
 }
 
-impl<'a> Seq<'a> for SeqSlice<'a> {
-	fn iter_seq_next(&self, cookie: &mut usize) ->
-		Option<Result<ArgdataValue<'a>, ReadError>> {
+impl<'a> Seq for SeqSlice<'a> {
+	fn iter_seq_next<'b>(&'b self, cookie: &mut usize) ->
+		Option<Result<ArgdataValue<'b>, ReadError>> {
 		self.0.get(*cookie).map(|&a| {
 			*cookie += 1;
 			Ok(ArgdataValue::Reference(a))

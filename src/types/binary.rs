@@ -5,8 +5,8 @@ use Value;
 #[derive(Debug)]
 pub struct Binary<'a>(pub &'a [u8]);
 
-impl<'a> Argdata<'a> for Binary<'a> {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'a> Argdata for Binary<'a> {
+	fn read<'b>(&'b self) -> Result<Value<'b>, ReadError> {
 		Ok(Value::Binary(self.0))
 	}
 

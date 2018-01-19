@@ -5,8 +5,8 @@ use Value;
 #[derive(Debug)]
 pub struct Str<'a>(pub &'a str);
 
-impl<'a> Argdata<'a> for Str<'a> {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'b> Argdata for Str<'b> {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Str(self.0))
 	}
 

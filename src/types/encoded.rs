@@ -16,9 +16,9 @@ use Type;
 
 pub struct EncodedArgdata<'a>(pub &'a [u8]);
 
-impl<'a> Argdata<'a> for EncodedArgdata<'a> {
+impl<'b> Argdata for EncodedArgdata<'b> {
 
-	fn get_type(&'a self) -> Result<Type, ReadError> {
+	fn get_type(&self) -> Result<Type, ReadError> {
 		match self.0.first() {
 			None => Ok(Type::Null),
 			Some(&1) => Ok(Type::Binary),
@@ -34,21 +34,21 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 		}
 	}
 
-	fn read_null(&'a self) -> Result<(), NotRead> {
+	fn read_null(&self) -> Result<(), NotRead> {
 		match self.0.len() {
 			0 => Ok(()),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_binary(&'a self) -> Result<&'a [u8], NotRead> {
+	fn read_binary<'a>(&'a self) -> Result<&'a [u8], NotRead> {
 		match self.0.split_first() {
 			Some((&8, data)) => Ok(data),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_bool(&'a self) -> Result<bool, NotRead> {
+	fn read_bool(&self) -> Result<bool, NotRead> {
 		match self.0.split_first() {
 			Some((&2, data)) if data == &[]  => Ok(false),
 			Some((&2, data)) if data == &[1] => Ok(true),
@@ -59,7 +59,7 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 
 	// TODO: fd (3)
 
-	fn read_float(&'a self) -> Result<f64, NotRead> {
+	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.0.split_first() {
 			Some((&4, data)) if data.len() == 8 =>
 				Ok(f64::from_bits(BigEndian::read_u64(data))),
@@ -68,28 +68,28 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 		}
 	}
 
-	fn read_int_value(&'a self) -> Result<IntValue<'a>, NotRead> {
+	fn read_int_value<'a>(&'a self) -> Result<IntValue<'a>, NotRead> {
 		match self.0.split_first() {
 			Some((&5, data)) => Ok(IntValue::from(BigInt(data))),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_map(&'a self) -> Result<&'a Map<'a>, NotRead> {
+	fn read_map<'a>(&'a self) -> Result<&'a (Map + 'a), NotRead> {
 		match self.0.first() {
 			Some(&6) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_seq(&'a self) -> Result<&'a Seq<'a>, NotRead> {
+	fn read_seq<'a>(&'a self) -> Result<&'a (Seq + 'a), NotRead> {
 		match self.0.first() {
 			Some(&7) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_str(&'a self) -> Result<&'a str, NotRead> {
+	fn read_str<'a>(&'a self) -> Result<&'a str, NotRead> {
 		match self.0.split_first() {
 			Some((&8, data)) => match data.split_last() {
 				Some((&0, str_bytes)) =>
@@ -102,7 +102,7 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 		}
 	}
 
-	fn read_timestamp(&'a self) -> Result<Timespec, NotRead> {
+	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.0.split_first() {
 			Some((&9, data)) => {
 
@@ -113,7 +113,7 @@ impl<'a> Argdata<'a> for EncodedArgdata<'a> {
 
 				// Read nanoseconds into an integer (128 bits are enough).
 				let sign = data.len() > 0 && data[0] >= 0x80;
-				let mut nsec = if sign { -1i128 } else { 1i128 };
+				let mut nsec = if sign { -1i128 } else { 0i128 };
 				for &b in data {
 					nsec = nsec << 8 | (b as i128);
 				}
@@ -156,14 +156,14 @@ impl<'a> EncodedArgdata<'a> {
 	}
 }
 
-impl<'a> Seq<'a> for EncodedArgdata<'a> {
-	fn iter_seq_next(&self, offset: &mut usize) -> Option<Result<ArgdataValue<'a>, ReadError>> {
+impl<'a> Seq for EncodedArgdata<'a> {
+	fn iter_seq_next<'b>(&'b self, offset: &mut usize) -> Option<Result<ArgdataValue<'b>, ReadError>> {
 		self.iter_subfield_next(7, offset)
 	}
 }
 
-impl<'a> Map<'a> for EncodedArgdata<'a> {
-	fn iter_map_next(&self, offset: &mut usize) -> Option<Result<(ArgdataValue<'a>, ArgdataValue<'a>), ReadError>> {
+impl<'a> Map for EncodedArgdata<'a> {
+	fn iter_map_next<'b>(&'b self, offset: &mut usize) -> Option<Result<(ArgdataValue<'b>, ArgdataValue<'b>), ReadError>> {
 		let key = match self.iter_subfield_next(6, offset) {
 			None => return None,
 			Some(Ok(v)) => v,

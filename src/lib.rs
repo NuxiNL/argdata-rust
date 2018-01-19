@@ -41,8 +41,8 @@ pub enum Value<'a> {
 	Int(IntValue<'a>),
 	Str(&'a str),
 	Timestamp(Timespec),
-	Map(&'a (Map<'a> + 'a)), // TODO: + 'a?
-	Seq(&'a (Seq<'a> + 'a)),
+	Map(&'a (Map + 'a)), // TODO: + 'a?
+	Seq(&'a (Seq + 'a)),
 }
 
 impl<'a> Value<'a> {
@@ -132,9 +132,9 @@ impl From<NoFit> for NotRead {
 	}
 }
 
-pub trait Argdata<'a> {
+pub trait Argdata {
 
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		let t = self.get_type()?;
 		let result = (|| match t {
 			Type::Null      => Ok(Value::Null),
@@ -155,25 +155,25 @@ pub trait Argdata<'a> {
 		}
 	}
 
-	fn get_type(&'a self) -> Result<Type, ReadError> {
+	fn get_type(&self) -> Result<Type, ReadError> {
 		Ok(self.read()?.get_type())
 	}
 
-	fn read_null(&'a self) -> Result<(), NotRead> {
+	fn read_null(&self) -> Result<(), NotRead> {
 		match self.read()? {
 			Value::Null => Ok(()),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_binary(&'a self) -> Result<&'a [u8], NotRead> {
+	fn read_binary<'a>(&'a self) -> Result<&'a [u8], NotRead> {
 		match self.read()? {
 			Value::Binary(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_bool(&'a self) -> Result<bool, NotRead> {
+	fn read_bool(&self) -> Result<bool, NotRead> {
 		match self.read()? {
 			Value::Bool(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -181,23 +181,37 @@ pub trait Argdata<'a> {
 	}
 
 	//fn read_raw_fd(&self) -> Result<u32, NotRead>;
-	//fn read_fd(&'a self) -> Result<TODO, NotRead>;
+	//fn read_fd(&self) -> Result<TODO, NotRead>;
 
-	fn read_float(&'a self) -> Result<f64, NotRead> {
+	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.read()? {
 			Value::Float(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_int_value(&'a self) -> Result<IntValue<'a>, NotRead> {
+	fn read_int_value<'a>(&'a self) -> Result<IntValue<'a>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_str(&'a self) -> Result<&'a str, NotRead> {
+	fn read_map<'a>(&'a self) -> Result<&'a (Map + 'a), NotRead> {
+		match self.read()? {
+			Value::Map(v) => Ok(v),
+			_ => Err(NoFit::DifferentType.into()),
+		}
+	}
+
+	fn read_seq<'a>(&'a self) -> Result<&'a (Seq + 'a), NotRead> {
+		match self.read()? {
+			Value::Seq(v) => Ok(v),
+			_ => Err(NoFit::DifferentType.into()),
+		}
+	}
+
+	fn read_str<'a>(&'a self) -> Result<&'a str, NotRead> {
 		match self.read()? {
 			Value::Str(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -206,23 +220,9 @@ pub trait Argdata<'a> {
 
 	// TODO: read_timestamp_ns ? (to remove TimestampOutOfRange)
 
-	fn read_timestamp(&'a self) -> Result<Timespec, NotRead> {
+	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.read()? {
 			Value::Timestamp(v) => Ok(v),
-			_ => Err(NoFit::DifferentType.into()),
-		}
-	}
-
-	fn read_map(&'a self) -> Result<&'a (Map<'a> + 'a), NotRead> {
-		match self.read()? {
-			Value::Map(v) => Ok(v),
-			_ => Err(NoFit::DifferentType.into()),
-		}
-	}
-
-	fn read_seq(&'a self) -> Result<&'a (Seq<'a> + 'a), NotRead> {
-		match self.read()? {
-			Value::Seq(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
@@ -248,10 +248,10 @@ pub trait Argdata<'a> {
 	}
 }
 
-impl<'a> Argdata<'a> {
+impl Argdata {
 
 	// TODO: Check if this can be called on types implementing Argdata.
-	pub fn read_int<T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
+	pub fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
@@ -261,11 +261,11 @@ impl<'a> Argdata<'a> {
 
 pub enum ArgdataValue<'a> {
 	Encoded(EncodedArgdata<'a>),
-	Reference(&'a Argdata<'a>),
+	Reference(&'a (Argdata + 'a)),
 }
 
 impl<'a> Deref for ArgdataValue<'a> {
-	type Target = Argdata<'a> + 'a;
+	type Target = Argdata + 'a;
 	fn deref(&self) -> &Self::Target {
 		match self {
 			&ArgdataValue::Encoded(ref argdata) => argdata,
@@ -274,17 +274,17 @@ impl<'a> Deref for ArgdataValue<'a> {
 	}
 }
 
-pub trait Map<'a> {
-	fn iter_map_next(&self, cookie: &mut usize) ->
+pub trait Map {
+	fn iter_map_next<'a>(&'a self, cookie: &mut usize) ->
 		Option<Result<(ArgdataValue<'a>, ArgdataValue<'a>), ReadError>>;
 }
 
-pub trait Seq<'a> {
-	fn iter_seq_next(&self, cookie: &mut usize) ->
+pub trait Seq {
+	fn iter_seq_next<'a>(&'a self, cookie: &mut usize) ->
 		Option<Result<ArgdataValue<'a>, ReadError>>;
 }
 
-impl<'a> Map<'a> + 'a {
+impl<'a> Map + 'a {
 	pub const START_COOKIE: usize = 0;
 	pub fn iter_map(&'a self) -> MapIterator<'a> {
 		MapIterator{
@@ -294,7 +294,7 @@ impl<'a> Map<'a> + 'a {
 	}
 }
 
-impl<'a> Seq<'a> + 'a {
+impl<'a> Seq + 'a {
 	pub const START_COOKIE: usize = 0;
 	pub fn iter_seq(&'a self) -> SeqIterator<'a> {
 		SeqIterator{
@@ -305,12 +305,12 @@ impl<'a> Seq<'a> + 'a {
 }
 
 pub struct MapIterator<'a> {
-	map: &'a Map<'a>,
+	map: &'a (Map + 'a),
 	cookie: usize,
 }
 
 pub struct SeqIterator<'a> {
-	seq: &'a Seq<'a>,
+	seq: &'a (Seq + 'a),
 	cookie: usize,
 }
 
@@ -345,10 +345,9 @@ impl<'a> fmt::Debug for ArgdataValue<'a> {
 	}
 }
 
-impl<'a> fmt::Debug for Argdata<'a> + 'a { // TODO: + 'a needed?
+impl<'a> fmt::Debug for Argdata + 'a {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		unimplemented!()
-		// TODO XXX FmtError(self.read()).fmt(f)
+		FmtError(self.read()).fmt(f)
 	}
 }
 
@@ -378,11 +377,29 @@ impl<'a> fmt::Debug for Value<'a> {
 	}
 }
 
-// TODO: remove
-fn _bla(_x: &Argdata<'static>) {}
+#[test]
+fn debug_fmt() {
+	let argdata = EncodedArgdata(b"\
+		\x06\x87\x08Hello\x00\x87\x08World\x00\x81\x02\x82\x02\x01\x86\x09\
+		\x70\xF1\x80\x29\x15\x84\x05\x58\xe5\xd9\x80\x83\x06\x80\x80\
+	");
+
+	assert_eq!(
+		format!("{:?}", &argdata as &Argdata),
+		"{\"Hello\": \"World\", false: true, timestamp(485, 88045333): 5826009, null: {null: null}}"
+	);
+
+	let argdata = EncodedArgdata(b"\
+		\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07\
+	");
+
+	assert_eq!(
+		format!("{:?}", &argdata as &Argdata),
+		"[false, true, null, \"Hello\", {}, []]"
+	);
+}
 
 // TODO:
-// Debug implementation(s)?
 // serialize() as a single function with Writer or something
 // Fd/Resource (template arg?)
 // Owned stuff (encoded, seq, map, binary, str, bigint, ..?)

@@ -5,8 +5,8 @@ use Value;
 #[derive(Debug)]
 pub struct Null;
 
-impl<'a> Argdata<'a> for Null {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl Argdata for Null {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Null)
 	}
 

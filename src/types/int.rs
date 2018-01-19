@@ -8,8 +8,8 @@ use Value;
 /// Use IntValue::from(BigInt) for easy access to the integral value.
 pub struct BigInt<'a>(pub &'a [u8]);
 
-impl<'a> Argdata<'a> for BigInt<'a> {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'b> Argdata for BigInt<'b> {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Int(IntValue::from(BigInt(self.0))))
 	}
 
@@ -25,12 +25,12 @@ impl<'a> Argdata<'a> for BigInt<'a> {
 
 pub struct Int<T>(pub T);
 
-impl<'a, T> Argdata<'a> for Int<T>
+impl<T> Argdata for Int<T>
 	where
 		T: Copy,
-		IntValue<'a>: From<T>
+		IntValue<'static>: From<T>
 {
-	fn read(&'a self) -> Result<Value<'a>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Int(IntValue::from(self.0)))
 	}
 
