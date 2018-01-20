@@ -1,3 +1,5 @@
+use std::io;
+
 use Argdata;
 use IntValue;
 use ReadError;
@@ -17,9 +19,10 @@ impl<'b> Argdata for BigInt<'b> {
 		self.0.len() + 1
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		buf[0] = 5;
-		buf[1..].copy_from_slice(self.0);
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(&[5])?;
+		writer.write_all(self.0)?;
+		Ok(())
 	}
 }
 
@@ -35,10 +38,11 @@ impl<T> Argdata for Int<T>
 	}
 
 	fn serialized_length(&self) -> usize {
-		unimplemented!()
+		IntValue::from(self.0).serialized_length() + 1
 	}
 
-	fn serialize_into(&self, _buf: &mut [u8]) {
-		unimplemented!()
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(&[5])?;
+		IntValue::from(self.0).serialize(writer)
 	}
 }

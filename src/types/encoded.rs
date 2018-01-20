@@ -1,6 +1,8 @@
 use byteorder::{ByteOrder, BigEndian};
 use std::convert::TryFrom;
+use std::io;
 use std;
+use subfield::read_subfield;
 
 use Argdata;
 use ArgdataValue;
@@ -140,8 +142,8 @@ impl<'b> Argdata for EncodedArgdata<'b> {
 		self.0.len()
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		buf.copy_from_slice(self.0);
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(self.0)
 	}
 
 }
@@ -175,34 +177,4 @@ impl<'a> Map for EncodedArgdata<'a> {
 			Some(Err(e)) => Some(Err(e)),
 		}
 	}
-}
-
-fn read_subfield<'a>(data: &'a [u8]) -> (Option<Result<&'a [u8], ReadError>>, usize) {
-	if data.len() == 0 {
-		return (None, 0)
-	}
-
-	// Decode field size
-	let mut len_bytes: usize = 0;
-	let mut len: usize = 0;
-	loop {
-		let byte = match data.get(len_bytes) {
-			Some(&v) => v,
-			None => return (Some(Err(ReadError::InvalidSubfield)), data.len()),
-		};
-		len_bytes += 1;
-		if len > std::usize::MAX >> 7 {
-			return (Some(Err(ReadError::InvalidSubfield)), data.len());
-		}
-		len = len << 7 | (byte & 0x7F) as usize;
-		if byte >= 0x80 { break; }
-	}
-
-	// Get len bytes after the encoded length.
-	if len > data[len_bytes..].len() {
-		return (Some(Err(ReadError::InvalidSubfield)), data.len());
-	}
-	let field = &data[len_bytes..][..len];
-
-	(Some(Ok(field)), len_bytes + len)
 }

@@ -1,10 +1,10 @@
 use byteorder::{ByteOrder, BigEndian};
+use std::io;
 
 use Argdata;
 use ReadError;
 use Value;
 
-#[derive(Debug)]
 pub struct Float(pub f64);
 
 impl Argdata for Float {
@@ -16,9 +16,11 @@ impl Argdata for Float {
 		9
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		assert_eq!(buf.len(), 9);
-		buf[0] = 4;
-		BigEndian::write_f64(&mut buf[1..9], self.0);
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		let mut buf = [0u8; 8];
+		BigEndian::write_f64(&mut buf, self.0);
+		writer.write_all(&[5])?;
+		writer.write_all(&buf)?;
+		Ok(())
 	}
 }

@@ -5,19 +5,20 @@ extern crate byteorder;
 
 use std::convert::TryFrom;
 use std::fmt;
+use std::io;
 use std::ops::Deref;
-
-mod intvalue;
-pub use intvalue::IntValue;
-
-mod timespec;
-pub use timespec::Timespec;
-
-mod types;
-pub use types::*;
 
 #[cfg(target_os="cloudabi")]
 pub mod env;
+
+mod intvalue;
+mod subfield;
+mod timespec;
+mod types;
+
+pub use intvalue::IntValue;
+pub use timespec::Timespec;
+pub use types::*;
 
 pub enum Type {
 	Null,
@@ -41,7 +42,7 @@ pub enum Value<'a> {
 	Int(IntValue<'a>),
 	Str(&'a str),
 	Timestamp(Timespec),
-	Map(&'a (Map + 'a)), // TODO: + 'a?
+	Map(&'a (Map + 'a)),
 	Seq(&'a (Seq + 'a)),
 }
 
@@ -84,7 +85,7 @@ pub enum ReadError {
 	/// The data represents a file descriptor, but wasn't exactly 32 bits.
 	InvalidFdLength,
 
-	/// The data represents a timestamp that does not fit within a Timespec.
+	/// The data represents a timestamp that does not fit in a Timespec.
 	TimestampOutOfRange,
 
 	/// The data contains a subfield (of a map or seq) with an incomplete or too large length.
@@ -218,8 +219,6 @@ pub trait Argdata {
 		}
 	}
 
-	// TODO: read_timestamp_ns ? (to remove TimestampOutOfRange)
-
 	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.read()? {
 			Value::Timestamp(v) => Ok(v),
@@ -228,35 +227,20 @@ pub trait Argdata {
 	}
 
 	fn serialized_length(&self) -> usize;
-	fn max_number_of_fds(&self) -> usize { 0 }
-	fn serialize_into(&self, buf: &mut [u8]); // TODO: fds: Option<&mut &mut [u32]>);
 
-	fn serialize_append_to_vec(&self, buf: &mut Vec<u8>) {
-		let len = self.serialized_length();
-		buf.reserve(len);
-		unsafe {
-			let buflen = buf.len();
-			self.serialize_into(std::slice::from_raw_parts_mut(buf[buflen..].as_mut_ptr(), len));
-			buf.set_len(buflen + len);
-		}
-	}
-
-	fn serialize_to_vec(&self) -> Vec<u8> {
-		let mut buf = Vec::new();
-		self.serialize_append_to_vec(&mut buf);
-		buf
-	}
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()>;
 }
 
-impl Argdata {
+pub trait ArgdataExt {
+	fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead>;
+}
 
-	// TODO: Check if this can be called on types implementing Argdata.
-	pub fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
+impl<A> ArgdataExt for A where A: Argdata + ?Sized {
+	fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
 	}
-
 }
 
 pub enum ArgdataValue<'a> {
@@ -285,7 +269,6 @@ pub trait Seq {
 }
 
 impl<'a> Map + 'a {
-	pub const START_COOKIE: usize = 0;
 	pub fn iter_map(&'a self) -> MapIterator<'a> {
 		MapIterator{
 			map: self,
@@ -295,7 +278,6 @@ impl<'a> Map + 'a {
 }
 
 impl<'a> Seq + 'a {
-	pub const START_COOKIE: usize = 0;
 	pub fn iter_seq(&'a self) -> SeqIterator<'a> {
 		SeqIterator{
 			seq: self,
@@ -400,7 +382,21 @@ fn debug_fmt() {
 }
 
 // TODO:
-// serialize() as a single function with Writer or something
+// Make member(s) of all types::* private, add argdata::from() constructor for all.
 // Fd/Resource (template arg?)
 // Owned stuff (encoded, seq, map, binary, str, bigint, ..?)
 // Fix/update/make Tests
+
+/*
+fn test() {
+	argdata::from(());
+	argdata::from(b"asdf");
+	argdata::from(true);
+	argdata::from(1.23);
+	argdata::from(17);
+	argdata::from("asdf");
+	argdata::from(argdata::Timespec{ sec: 1, nsec: 2 });
+	argdata::from(&[(&val1, &val2), (&val3, &val4)]);
+	argdata::from(&[&val1, &val2, &val3]);
+}
+*/

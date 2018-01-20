@@ -16,6 +16,9 @@ pub use self::float::Float;
 mod int;
 pub use self::int::{BigInt, Int};
 
+mod map;
+pub use self::map::MapSlice;
+
 mod seq;
 pub use self::seq::SeqSlice;
 

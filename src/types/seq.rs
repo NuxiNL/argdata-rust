@@ -1,4 +1,5 @@
-use std::fmt;
+use std::io;
+use subfield::{subfield_length, write_subfield_length};
 
 use Argdata;
 use ArgdataValue;
@@ -6,8 +7,20 @@ use ReadError;
 use Seq;
 use Value;
 
-//#[derive(Debug)]
-pub struct SeqSlice<'a>(pub &'a [&'a (Argdata + 'a)]);
+pub struct SeqSlice<'a> {
+	items: &'a [&'a (Argdata + 'a)],
+	length: usize,
+}
+
+impl<'a> SeqSlice<'a> {
+	pub fn new(items: &'a [&'a (Argdata + 'a)]) -> Self {
+		let mut length = 1;
+		for a in items {
+			length += subfield_length(a.serialized_length());
+		}
+		SeqSlice{ items, length }
+	}
+}
 
 impl<'b> Argdata for SeqSlice<'b> {
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
@@ -15,26 +28,26 @@ impl<'b> Argdata for SeqSlice<'b> {
 	}
 
 	fn serialized_length(&self) -> usize {
-		unimplemented!()
+		self.length
 	}
 
-	fn serialize_into(&self, _buf: &mut [u8]) {
-		unimplemented!()
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(&[7])?;
+		for a in self.items {
+			write_subfield_length(a.serialized_length(), writer)?;
+			a.serialize(writer)?;
+		}
+		Ok(())
 	}
 }
 
 impl<'a> Seq for SeqSlice<'a> {
 	fn iter_seq_next<'b>(&'b self, cookie: &mut usize) ->
-		Option<Result<ArgdataValue<'b>, ReadError>> {
-		self.0.get(*cookie).map(|&a| {
+		Option<Result<ArgdataValue<'b>, ReadError>>
+	{
+		self.items.get(*cookie).map(|&a| {
 			*cookie += 1;
 			Ok(ArgdataValue::Reference(a))
 		})
-	}
-}
-
-impl<'a> fmt::Debug for SeqSlice<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		write!(f, "ARGDATA") // TODO
 	}
 }

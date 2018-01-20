@@ -1,3 +1,5 @@
+use std::io;
+
 use Argdata;
 use ReadError;
 use Value;
@@ -14,9 +16,10 @@ impl<'a> Argdata for Binary<'a> {
 		self.0.len() + 1
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		buf[0] = 1;
-		buf[1..].copy_from_slice(self.0);
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(&[1])?;
+		writer.write_all(self.0)?;
+		Ok(())
 	}
 }
 

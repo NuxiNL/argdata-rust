@@ -1,8 +1,9 @@
+use std::io;
+
 use Argdata;
 use ReadError;
 use Value;
 
-#[derive(Debug)]
 pub struct Str<'a>(pub &'a str);
 
 impl<'b> Argdata for Str<'b> {
@@ -14,11 +15,10 @@ impl<'b> Argdata for Str<'b> {
 		self.0.len() + 2
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		let strlen = self.0.len();
-		assert_eq!(buf.len(), strlen + 2);
-		buf[0] = 8;
-		buf[1..strlen+1].copy_from_slice(self.0.as_bytes());
-		buf[strlen+1] = 0;
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		writer.write_all(&[8])?;
+		writer.write_all(self.0.as_bytes())?;
+		writer.write_all(&[0])?;
+		Ok(())
 	}
 }

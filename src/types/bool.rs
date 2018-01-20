@@ -1,8 +1,9 @@
+use std::io;
+
 use Argdata;
 use ReadError;
 use Value;
 
-#[derive(Debug)]
 pub struct Bool(pub bool);
 
 impl Argdata for Bool {
@@ -12,15 +13,15 @@ impl Argdata for Bool {
 
 	fn serialized_length(&self) -> usize {
 		match self.0 {
-			true => 2,
 			false => 1,
+			true => 2,
 		}
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
+	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
 		match self.0 {
-			true => buf.copy_from_slice(&[2, 1]),
-			false => buf.copy_from_slice(&[2]),
+			false => writer.write_all(&[2]),
+			true => writer.write_all(&[2, 1]),
 		}
 	}
 }

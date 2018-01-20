@@ -1,8 +1,9 @@
+use std::io;
+
 use Argdata;
 use ReadError;
 use Value;
 
-#[derive(Debug)]
 pub struct Null;
 
 impl Argdata for Null {
@@ -14,7 +15,7 @@ impl Argdata for Null {
 		0
 	}
 
-	fn serialize_into(&self, buf: &mut [u8]) {
-		assert_eq!(buf.len(), 0);
+	fn serialize(&self, _writer: &mut io::Write) -> io::Result<()> {
+		Ok(())
 	}
 }

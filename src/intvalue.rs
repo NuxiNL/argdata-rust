@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::fmt;
+use std::io;
 use std::num::TryFromIntError;
 
 use BigInt;
@@ -102,6 +103,34 @@ impl_u!(u16);
 impl_u!(u32);
 impl_u!(u64);
 
+impl<'a> IntValue<'a> {
+	pub fn serialized_length(&self) -> usize {
+		match self.inner {
+			Inner::Unsigned(0) => 0,
+			Inner::Unsigned(v) => ((64 - v.leading_zeros()) / 8 + 1) as usize,
+			Inner::Signed(v) => ((64 - (!v).leading_zeros()) / 8 + 1) as usize,
+			Inner::Big(v) => v.len(),
+		}
+	}
+
+	pub fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+		let value = match self.inner {
+			Inner::Unsigned(v) => v,
+			Inner::Signed(v) => v as u64,
+			Inner::Big(v) => {
+				return writer.write_all(v);
+			}
+		};
+		let mut n = self.serialized_length();
+		while n != 0 {
+			n -= 1;
+			let byte = if n == 8 { 0 } else { (value >> n * 8) as u8 };
+			writer.write_all(&[byte])?;
+		}
+		Ok(())
+	}
+}
+
 // TODO: Implement Ord and PartialOrd
 
 /*
@@ -135,6 +164,37 @@ impl<'a> fmt::Debug for IntValue<'a> {
 			}
 		}
 	}
+}
+
+#[test]
+fn test_serialize() {
+	let assert_serialize = |int: IntValue, serialized: &[u8]| {
+		let mut v = Vec::new();
+		int.serialize(&mut v).unwrap();
+		assert_eq!(v, serialized);
+		assert_eq!(int.serialized_length(), serialized.len());
+	};
+
+	assert_serialize(IntValue::from(0), &[]);
+	assert_serialize(IntValue::from(1), &[0x01]);
+	assert_serialize(IntValue::from(127), &[0x7F]);
+	assert_serialize(IntValue::from(-1i32), &[0xFF]);
+	assert_serialize(IntValue::from(0xFF), &[0x00, 0xFF]);
+	assert_serialize(IntValue::from(-0x100), &[0xFF, 0x00]);
+	assert_serialize(IntValue::from(1000), &[0x03, 0xE8]);
+	assert_serialize(IntValue::from(-1000), &[0xFC, 0x18]);
+	assert_serialize(IntValue::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
+	assert_serialize(IntValue::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	assert_serialize(IntValue::from(BigInt(&[0, 0])), &[]);
+	assert_serialize(IntValue::from(BigInt(&[0, 1])), &[1]);
+	assert_serialize(IntValue::from(BigInt(&[1, 1])), &[1, 1]);
+	assert_serialize(IntValue::from(BigInt(&[0xFF])), &[0xFF]);
+	assert_serialize(IntValue::from(BigInt(&[0xFF, 0xFF])), &[0xFF]);
+	assert_serialize(IntValue::from(BigInt(&[0x00, 0xFF])), &[0x00, 0xFF]);
 }
 
 // TODO: update tests
