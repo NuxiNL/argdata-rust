@@ -4,22 +4,34 @@ use Argdata;
 use ReadError;
 use Value;
 
-pub struct Bool(pub bool);
+pub struct BoolValue {
+	value: bool
+}
 
-impl Argdata for Bool {
+pub fn bool(value: bool) -> BoolValue {
+	BoolValue{ value }
+}
+
+impl BoolValue {
+	pub fn value(&self) -> bool {
+		self.value
+	}
+}
+
+impl Argdata for BoolValue {
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
-		Ok(Value::Bool(self.0))
+		Ok(Value::Bool(self.value))
 	}
 
 	fn serialized_length(&self) -> usize {
-		match self.0 {
+		match self.value {
 			false => 1,
 			true => 2,
 		}
 	}
 
 	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
-		match self.0 {
+		match self.value {
 			false => writer.write_all(&[2]),
 			true => writer.write_all(&[2, 1]),
 		}

@@ -1,12 +1,12 @@
+use byteorder::{ByteOrder, BigEndian};
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
 use std::io;
 use std::num::TryFromIntError;
 
-use BigInt;
-
 #[derive(PartialEq, Eq)]
-pub struct IntValue<'a> {
+pub struct Integer<'a> {
 	inner: Inner<'a>
 }
 
@@ -17,15 +17,16 @@ enum Inner<'a> {
 	Big(&'a [u8]), // Big-endian 2's-complement signed integer of arbitrary length, that doesn't fit into a i64 or u64.
 }
 
-impl<'a> From<BigInt<'a>> for IntValue<'a> {
-	fn from(BigInt(mut data): BigInt<'a>) -> IntValue<'a> {
+impl<'a> Integer<'a> {
+	pub fn from_bigint(mut data: &'a [u8]) -> Integer<'a> {
 		// If it is positive and fits in an u64, will make an Inner::Unsigned.
 		// If it is negative and fits in an i64, will make an Inner::Signed.
 		// Otherwise, will make an Inner::Big with the borrowed data, with
 		// unnecessary leading zeros/ones stripped.
 
-		let sign = *data.get(0).unwrap_or(&0) >= 0x80;
+		let sign = sign(data);
 
+		// Remove redundant leading zeros/ones.
 		while
 			data.get(0) == Some(if sign { &0xFF } else { &0 }) &&
 			(*data.get(1).unwrap_or(&0) >= 0x80) == sign
@@ -33,38 +34,45 @@ impl<'a> From<BigInt<'a>> for IntValue<'a> {
 			data = &data[1..]
 		}
 
-		if data.len() > 9 || (data.len() == 9 && data[0] != 0) {
-			return IntValue{ inner: Inner::Big(data) };
+		// Special case: Data fits in u64, but would have wrong sign as bigint, so has an extra
+		// leading 0-byte. Since we're going to return it as a u64 and already extracted the sign,
+		// strip it.
+		if data.len() == 9 && data[0] == 0 {
+			data = &data[1..]
 		}
 
-		let mut value: u64 = if sign { !0 } else { 0 };
-
-		for &byte in data {
-			value = value << 8 | byte as u64;
-		}
-
-		if sign {
-			IntValue{ inner: Inner::Signed(value as i64) }
+		let inner = if data.len() <= 8 {
+			if sign {
+				Inner::Signed(BigEndian::read_int(data, data.len()))
+			} else {
+				Inner::Unsigned(BigEndian::read_uint(data, data.len()))
+			}
 		} else {
-			IntValue{ inner: Inner::Unsigned(value) }
-		}
+			Inner::Big(data)
+		};
+
+		Integer{ inner }
 	}
+}
+
+fn sign(v: &[u8]) -> bool {
+	*v.first().unwrap_or(&0) >= 0x80
 }
 
 macro_rules! impl_s {
 	($t:ty) => {
-		impl<'a> From<$t> for IntValue<'a> {
-			fn from(value: $t) -> IntValue<'a> {
+		impl<'a> From<$t> for Integer<'a> {
+			fn from(value: $t) -> Integer<'a> {
 				if value < 0 {
-					IntValue{ inner: Inner::Signed(value.into()) }
+					Integer{ inner: Inner::Signed(value.into()) }
 				} else {
-					IntValue{ inner: Inner::Unsigned(value as u64) }
+					Integer{ inner: Inner::Unsigned(value as u64) }
 				}
 			}
 		}
-		impl<'a> TryFrom<IntValue<'a>> for $t {
+		impl<'a> TryFrom<Integer<'a>> for $t {
 			type Error = TryFromIntError;
-			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
+			fn try_from(value: Integer<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
 					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
 					Inner::Signed(v) => Ok(TryFrom::try_from(v)?),
@@ -77,14 +85,14 @@ macro_rules! impl_s {
 
 macro_rules! impl_u {
 	($t:ty) => {
-		impl<'a> From<$t> for IntValue<'a> {
-			fn from(value: $t) -> IntValue<'a> {
-				IntValue{ inner: Inner::Unsigned(value as u64) }
+		impl<'a> From<$t> for Integer<'a> {
+			fn from(value: $t) -> Integer<'a> {
+				Integer{ inner: Inner::Unsigned(value as u64) }
 			}
 		}
-		impl<'a> TryFrom<IntValue<'a>> for $t {
+		impl<'a> TryFrom<Integer<'a>> for $t {
 			type Error = TryFromIntError;
-			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
+			fn try_from(value: Integer<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
 					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
 					_ => TryFrom::try_from(-1), // Always fails
@@ -103,7 +111,7 @@ impl_u!(u16);
 impl_u!(u32);
 impl_u!(u64);
 
-impl<'a> IntValue<'a> {
+impl<'a> Integer<'a> {
 	pub fn serialized_length(&self) -> usize {
 		match self.inner {
 			Inner::Unsigned(0) => 0,
@@ -131,26 +139,35 @@ impl<'a> IntValue<'a> {
 	}
 }
 
-// TODO: Implement Ord and PartialOrd
+impl<'a> PartialOrd<Integer<'a>> for Integer<'a> {
+	fn partial_cmp(&self, other: &Integer<'a>) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+}
 
-/*
-impl<'a> PartialEq for IntValue<'a> {
-	fn eq(&self, other: &IntValue<'a>) -> bool {
-		match self.inner {
-			Inner::Unsigned(v) => Some(v) == other.get_u64(),
-			Inner::Signed(v) => Some(v) == other.get_i64(),
-			Inner::Big(ref d) => match other.inner {
-				Inner::Big(ref d2) => d == d2,
-				_ => false
-			}
+impl<'a> Ord for Integer<'a> {
+	fn cmp(&self, other: &Self) -> Ordering {
+		match (&self.inner, &other.inner) {
+			(&Inner::Unsigned(a), &Inner::Unsigned(b))             => a.cmp(&b),
+			(&Inner::Unsigned(_), &Inner::Big(b)) if !sign(b)      => Ordering::Less,
+			(&Inner::Unsigned(_), _)                               => Ordering::Greater,
+			(&Inner::Signed(a), &Inner::Signed(b))                 => a.cmp(&b),
+			(&Inner::Signed(_), &Inner::Big(b)) if sign(b)         => Ordering::Greater,
+			(&Inner::Signed(_), _)                                 => Ordering::Less,
+			(&Inner::Big(a), &Inner::Big(b)) if sign(a) == sign(b) => cmp_same_sign_bigint(a, b),
+			(&Inner::Big(a), _) if sign(a)                         => Ordering::Less,
+			(&Inner::Big(_), _)                                    => Ordering::Greater,
 		}
 	}
 }
 
-impl<'a> Eq for IntValue<'a> {}
-*/
+fn cmp_same_sign_bigint(a: &[u8], b: &[u8]) -> Ordering {
+	let mut o = a.len().cmp(&b.len());
+	if sign(a) { o = o.reverse() }
+	o.then_with(|| a.cmp(b))
+}
 
-impl<'a> fmt::Debug for IntValue<'a> {
+impl<'a> fmt::Debug for Integer<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		match self.inner {
 			Inner::Unsigned(v) => write!(f, "{}", v),
@@ -168,33 +185,33 @@ impl<'a> fmt::Debug for IntValue<'a> {
 
 #[test]
 fn test_serialize() {
-	let assert_serialize = |int: IntValue, serialized: &[u8]| {
+	let assert_serialize = |int: Integer, serialized: &[u8]| {
 		let mut v = Vec::new();
 		int.serialize(&mut v).unwrap();
 		assert_eq!(v, serialized);
 		assert_eq!(int.serialized_length(), serialized.len());
 	};
 
-	assert_serialize(IntValue::from(0), &[]);
-	assert_serialize(IntValue::from(1), &[0x01]);
-	assert_serialize(IntValue::from(127), &[0x7F]);
-	assert_serialize(IntValue::from(-1i32), &[0xFF]);
-	assert_serialize(IntValue::from(0xFF), &[0x00, 0xFF]);
-	assert_serialize(IntValue::from(-0x100), &[0xFF, 0x00]);
-	assert_serialize(IntValue::from(1000), &[0x03, 0xE8]);
-	assert_serialize(IntValue::from(-1000), &[0xFC, 0x18]);
-	assert_serialize(IntValue::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
-	assert_serialize(IntValue::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-	assert_serialize(IntValue::from(BigInt(&[0, 0])), &[]);
-	assert_serialize(IntValue::from(BigInt(&[0, 1])), &[1]);
-	assert_serialize(IntValue::from(BigInt(&[1, 1])), &[1, 1]);
-	assert_serialize(IntValue::from(BigInt(&[0xFF])), &[0xFF]);
-	assert_serialize(IntValue::from(BigInt(&[0xFF, 0xFF])), &[0xFF]);
-	assert_serialize(IntValue::from(BigInt(&[0x00, 0xFF])), &[0x00, 0xFF]);
+	assert_serialize(Integer::from(0), &[]);
+	assert_serialize(Integer::from(1), &[0x01]);
+	assert_serialize(Integer::from(127), &[0x7F]);
+	assert_serialize(Integer::from(-1i32), &[0xFF]);
+	assert_serialize(Integer::from(0xFF), &[0x00, 0xFF]);
+	assert_serialize(Integer::from(-0x100), &[0xFF, 0x00]);
+	assert_serialize(Integer::from(1000), &[0x03, 0xE8]);
+	assert_serialize(Integer::from(-1000), &[0xFC, 0x18]);
+	assert_serialize(Integer::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(Integer::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(Integer::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(Integer::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(Integer::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
+	assert_serialize(Integer::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	assert_serialize(Integer::from_bigint(&[0, 0]), &[]);
+	assert_serialize(Integer::from_bigint(&[0, 1]), &[1]);
+	assert_serialize(Integer::from_bigint(&[1, 1]), &[1, 1]);
+	assert_serialize(Integer::from_bigint(&[0xFF]), &[0xFF]);
+	assert_serialize(Integer::from_bigint(&[0xFF, 0xFF]), &[0xFF]);
+	assert_serialize(Integer::from_bigint(&[0x00, 0xFF]), &[0x00, 0xFF]);
 }
 
 // TODO: update tests

@@ -6,8 +6,7 @@ use subfield::read_subfield;
 
 use Argdata;
 use ArgdataValue;
-use BigInt;
-use IntValue;
+use Integer;
 use Map;
 use NoFit;
 use NotRead;
@@ -16,6 +15,8 @@ use Seq;
 use Timespec;
 use Type;
 
+// TODO: Make struct with private member(s)
+// TODO: Add fd-mapping function (template?)
 pub struct EncodedArgdata<'a>(pub &'a [u8]);
 
 impl<'b> Argdata for EncodedArgdata<'b> {
@@ -70,9 +71,9 @@ impl<'b> Argdata for EncodedArgdata<'b> {
 		}
 	}
 
-	fn read_int_value<'a>(&'a self) -> Result<IntValue<'a>, NotRead> {
+	fn read_int_value<'a>(&'a self) -> Result<Integer<'a>, NotRead> {
 		match self.0.split_first() {
-			Some((&5, data)) => Ok(IntValue::from(BigInt(data))),
+			Some((&5, data)) => Ok(Integer::from_bigint(data)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}

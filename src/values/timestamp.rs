@@ -5,11 +5,23 @@ use ReadError;
 use Timespec;
 use Value;
 
-pub struct Timestamp(pub Timespec);
+pub struct TimestampValue {
+	value: Timespec
+}
 
-impl Argdata for Timestamp {
+pub fn timestamp(value: Timespec) -> TimestampValue {
+	TimestampValue{ value }
+}
+
+impl TimestampValue {
+	pub fn value(&self) -> Timespec {
+		self.value
+	}
+}
+
+impl Argdata for TimestampValue {
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
-		Ok(Value::Timestamp(self.0))
+		Ok(Value::Timestamp(self.value))
 	}
 
 	fn serialized_length(&self) -> usize {
@@ -29,9 +41,9 @@ impl Argdata for Timestamp {
 	}
 }
 
-impl Timestamp {
+impl TimestampValue {
 	fn nanoseconds(&self) -> i128 {
-		self.0.sec as i128 + self.0.nsec as i128 * 1_000_000_000
+		self.value.sec as i128 + self.value.nsec as i128 * 1_000_000_000
 	}
 }
 

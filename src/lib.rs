@@ -11,14 +11,16 @@ use std::ops::Deref;
 #[cfg(target_os="cloudabi")]
 pub mod env;
 
-mod intvalue;
+// TODO: Decide what should be public, and what should be in the root namespace.
+pub mod container;
+mod integer;
 mod subfield;
 mod timespec;
-mod types;
+mod values;
 
-pub use intvalue::IntValue;
+pub use integer::Integer;
 pub use timespec::Timespec;
-pub use types::*;
+pub use values::*;
 
 pub enum Type {
 	Null,
@@ -39,7 +41,7 @@ pub enum Value<'a> {
 	Bool(bool),
 	Fd(u32), // TODO
 	Float(f64),
-	Int(IntValue<'a>),
+	Int(Integer<'a>),
 	Str(&'a str),
 	Timestamp(Timespec),
 	Map(&'a (Map + 'a)),
@@ -191,7 +193,7 @@ pub trait Argdata {
 		}
 	}
 
-	fn read_int_value<'a>(&'a self) -> Result<IntValue<'a>, NotRead> {
+	fn read_int_value<'a>(&'a self) -> Result<Integer<'a>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -232,11 +234,11 @@ pub trait Argdata {
 }
 
 pub trait ArgdataExt {
-	fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead>;
+	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead>;
 }
 
 impl<A> ArgdataExt for A where A: Argdata + ?Sized {
-	fn read_int<'a, T: TryFrom<IntValue<'a>>>(&'a self) -> Result<T, NotRead> {
+	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
@@ -357,6 +359,11 @@ impl<'a> fmt::Debug for Value<'a> {
 			}
 		}
 	}
+}
+
+trait ToArgdata {
+	type Type: Argdata;
+	fn to_argdata(self) -> Self::Type;
 }
 
 #[test]
