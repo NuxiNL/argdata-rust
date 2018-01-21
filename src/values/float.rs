@@ -5,21 +5,22 @@ use Argdata;
 use ReadError;
 use Value;
 
-pub struct FloatValue {
+pub struct Float{
 	value: f64
 }
 
-pub fn float<T: Into<f64>>(value: T) -> FloatValue {
-	FloatValue{ value: value.into() }
+/// Create an argdata value representing a 64-bit floating point value.
+pub fn float<T: Into<f64>>(value: T) -> Float{
+	Float{ value: value.into() }
 }
 
-impl FloatValue {
+impl Float{
 	pub fn value(&self) -> f64 {
 		self.value
 	}
 }
 
-impl Argdata for FloatValue {
+impl Argdata for Float{
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Float(self.value))
 	}

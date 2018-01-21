@@ -10,8 +10,7 @@
 ///
 /// - Time chrono crate is a bit too big of a dependency.
 ///
-/// - Using libc::timespec doesn't seem to provide any advantages over having
-///   our own Timespec.
+/// - The types of the members of libc::timespec aren't the same on every platform.
 ///
 /// The most used time types/libraries seem to provide a way to work with a
 /// timestamp since the unix epoch with separate seconds (i64 or u64) and

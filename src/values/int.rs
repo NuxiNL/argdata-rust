@@ -5,21 +5,25 @@ use Integer;
 use ReadError;
 use Value;
 
-pub struct IntValue<T: Copy> {
+pub struct Int<T> {
 	value: T
 }
 
-pub fn int<T: Copy>(value: T) -> IntValue<T> {
-	IntValue{ value }
+/// Create an argdata value representing an integer (of fixed width, e.g. `i32`).
+pub fn int<T>(value: T) -> Int<T> where
+	T: Copy,
+	Integer<'static>: From<T>,
+{
+	Int{ value }
 }
 
-impl<T: Copy> IntValue<T> where {
+impl<T: Copy> Int<T> where {
 	pub fn value(&self) -> T {
 		self.value
 	}
 }
 
-impl<T> Argdata for IntValue<T> where
+impl<T> Argdata for Int<T> where
 	T: Copy,
 	Integer<'static>: From<T>
 {

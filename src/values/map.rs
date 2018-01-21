@@ -1,19 +1,31 @@
-use container::MapContainer;
+use container_traits::MapContainer;
 use std::io;
 use subfield::{subfield_length, write_subfield_length};
 
 use Argdata;
-use ArgdataValue;
+use ArgdataRef;
 use ReadError;
-use Map;
 use Value;
 
-pub struct MapValue<T> {
+pub struct Map<T> {
 	items: T,
 	length: usize,
 }
 
-pub fn map<T>(items: T) -> MapValue<T> where
+/// Create an argdata value representing a map.
+///
+/// Note that the data can be (partially) borrowed or owned, depending on the type of container you
+/// provide. Also, both a pair of lists and a list of pairs are acceptable containers for `map()`.
+///
+/// See [`container_trait::MapContainer`](container_traits/trait.MapContainer.html).
+///
+/// Examples:
+///
+///  - `map(vec![(key, val), (key, val)])`
+///  - `map(&[])`
+///  - `let keys = vec![...]; let values = &[...]; map((keys, values))`
+///
+pub fn map<T>(items: T) -> Map<T> where
 	T: MapContainer,
 	<T as MapContainer>::Key: Argdata,
 	<T as MapContainer>::Value: Argdata,
@@ -24,10 +36,10 @@ pub fn map<T>(items: T) -> MapValue<T> where
 		length += subfield_length(k.serialized_length());
 		length += subfield_length(v.serialized_length());
 	}
-	MapValue{ items, length }
+	Map{ items, length }
 }
 
-impl<T> MapValue<T> where
+impl<T> Map<T> where
 	T: MapContainer,
 	<T as MapContainer>::Key: Argdata,
 	<T as MapContainer>::Value: Argdata,
@@ -40,7 +52,7 @@ impl<T> MapValue<T> where
 	}
 }
 
-impl<T> Argdata for MapValue<T> where
+impl<T> Argdata for Map<T> where
 	T: MapContainer,
 	<T as MapContainer>::Key: Argdata,
 	<T as MapContainer>::Value: Argdata,
@@ -66,19 +78,19 @@ impl<T> Argdata for MapValue<T> where
 	}
 }
 
-impl<T> Map for MapValue<T> where
+impl<T> ::Map for Map<T> where
 	T: MapContainer,
 	<T as MapContainer>::Key: Argdata,
 	<T as MapContainer>::Value: Argdata,
 {
 	fn iter_map_next<'b>(&'b self, cookie: &mut usize) ->
-		Option<Result<(ArgdataValue<'b>, ArgdataValue<'b>), ReadError>>
+		Option<Result<(ArgdataRef<'b>, ArgdataRef<'b>), ReadError>>
 	{
 		self.items.get(*cookie).map(|(k, v)| {
 			*cookie += 1;
 			Ok((
-				ArgdataValue::Reference(k),
-				ArgdataValue::Reference(v)
+				ArgdataRef::reference(k),
+				ArgdataRef::reference(v)
 			))
 		})
 	}

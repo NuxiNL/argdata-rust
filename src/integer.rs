@@ -5,6 +5,11 @@ use std::fmt;
 use std::io;
 use std::num::TryFromIntError;
 
+/// Represents a signed integer of any size.
+///
+/// An integer that fits in a `u64` or `i64` is directly stored in the object.
+/// Anything bigger is stored somewhere else (with lifetime `'a`) as a 2's complement big-endian
+/// integer in the form of an `[u8]`.
 #[derive(PartialEq, Eq)]
 pub struct Integer<'a> {
 	inner: Inner<'a>
@@ -41,7 +46,9 @@ impl<'a> Integer<'a> {
 			data = &data[1..]
 		}
 
-		let inner = if data.len() <= 8 {
+		let inner = if data.len() == 0 {
+			Inner::Unsigned(0)
+		} else if data.len() <= 8 {
 			if sign {
 				Inner::Signed(BigEndian::read_int(data, data.len()))
 			} else {
@@ -52,6 +59,14 @@ impl<'a> Integer<'a> {
 		};
 
 		Integer{ inner }
+	}
+
+	pub fn is_negative(&self) -> bool {
+		match &self.inner {
+			&Inner::Unsigned(_) => false,
+			&Inner::Signed(_) => true,
+			&Inner::Big(v) => sign(v),
+		}
 	}
 }
 
@@ -145,6 +160,7 @@ impl<'a> PartialOrd<Integer<'a>> for Integer<'a> {
 	}
 }
 
+// TODO: test
 impl<'a> Ord for Integer<'a> {
 	fn cmp(&self, other: &Self) -> Ordering {
 		match (&self.inner, &other.inner) {
@@ -173,6 +189,7 @@ impl<'a> fmt::Debug for Integer<'a> {
 			Inner::Unsigned(v) => write!(f, "{}", v),
 			Inner::Signed(v) => write!(f, "{}", v),
 			Inner::Big(ref d) => {
+				// TODO: Print negative numbers correctly.
 				write!(f, "0x")?;
 				for byte in &d[..] {
 					write!(f, "{:02X}", byte)?;

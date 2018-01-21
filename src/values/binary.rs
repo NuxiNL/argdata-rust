@@ -5,15 +5,19 @@ use Argdata;
 use ReadError;
 use Value;
 
-pub struct BinaryValue<T: Borrow<[u8]>> {
+pub struct Binary<T: Borrow<[u8]>> {
 	value: T
 }
 
-pub fn binary<T: Borrow<[u8]>>(value: T) -> BinaryValue<T> {
-	BinaryValue{ value }
+/// Create an argdata value representing a binary blob.
+///
+/// Note that the data can be either owned or borrowed, depending on the type of container you
+/// provide. For example: binary(vec![1, 2]) will own the bytes, and binary(&[1, 2]) will borrow.
+pub fn binary<T: Borrow<[u8]>>(value: T) -> Binary<T> {
+	Binary{ value }
 }
 
-impl<T: Borrow<[u8]>> BinaryValue<T> {
+impl<T: Borrow<[u8]>> Binary<T> {
 	pub fn bytes(&self) -> &[u8] {
 		self.value.borrow()
 	}
@@ -22,7 +26,7 @@ impl<T: Borrow<[u8]>> BinaryValue<T> {
 	}
 }
 
-impl<T: Borrow<[u8]>> Argdata for BinaryValue<T> {
+impl<T: Borrow<[u8]>> Argdata for Binary<T> {
 	fn read<'b>(&'b self) -> Result<Value<'b>, ReadError> {
 		Ok(Value::Binary(self.bytes()))
 	}

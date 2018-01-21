@@ -1,3 +1,4 @@
+use byteorder::{ByteOrder, BigEndian};
 use std::io;
 
 use Argdata;
@@ -5,21 +6,22 @@ use ReadError;
 use Timespec;
 use Value;
 
-pub struct TimestampValue {
+pub struct Timestamp {
 	value: Timespec
 }
 
-pub fn timestamp(value: Timespec) -> TimestampValue {
-	TimestampValue{ value }
+/// Create an argdata value representing a point in time.
+pub fn timestamp(value: Timespec) -> Timestamp {
+	Timestamp{ value }
 }
 
-impl TimestampValue {
+impl Timestamp{
 	pub fn value(&self) -> Timespec {
 		self.value
 	}
 }
 
-impl Argdata for TimestampValue {
+impl Argdata for Timestamp{
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Timestamp(self.value))
 	}
@@ -28,20 +30,19 @@ impl Argdata for TimestampValue {
 		i128_serialized_length(self.nanoseconds()) + 1
 	}
 
+	// TODO: Test.
 	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
 		writer.write_all(&[9])?;
 		let nsec = self.nanoseconds();
-		let mut n = i128_serialized_length(nsec);
-		while n != 0 {
-			n -= 1;
-			let byte = (nsec >> n * 8) as u8;
-			writer.write_all(&[byte])?;
-		}
+		let n = i128_serialized_length(nsec);
+		let mut buf = [0u8; 12];
+		BigEndian::write_int128(&mut buf, nsec, n);
+		writer.write_all(&buf)?;
 		Ok(())
 	}
 }
 
-impl TimestampValue {
+impl Timestamp{
 	fn nanoseconds(&self) -> i128 {
 		self.value.sec as i128 + self.value.nsec as i128 * 1_000_000_000
 	}

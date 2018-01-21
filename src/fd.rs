@@ -39,6 +39,7 @@ impl<'a, T> ConvertFd for &'a T where T: ConvertFd + 'a + ?Sized {
 	}
 }
 
+/// A file descriptor from an (encoded) argdata value that's not yet converted.
 #[derive(Clone, Copy)]
 pub struct EncodedFd<'a> {
 	raw: u32,
@@ -46,14 +47,16 @@ pub struct EncodedFd<'a> {
 }
 
 impl<'a> EncodedFd<'a> {
-	/// Create an EncodedFd that will convert `raw` using `convert_fd`.
+	/// Create an EncodedFd that will convert `raw` to an Fd using `convert_fd`.
 	pub fn new(raw: u32, convert_fd: &'a (ConvertFd + 'a)) -> EncodedFd<'a> {
 		EncodedFd{ raw, convert_fd }
 	}
+
 	/// The 32-bit file descriptor number exactly as encoded in the raw argdata.
-	pub fn raw_encoded_fd_number(&self) -> u32 {
+	pub fn raw_encoded_number(&self) -> u32 {
 		self.raw
 	}
+
 	/// Converts this to a valid file descriptor, if possible.
 	pub fn fd(&self) -> Result<Fd, InvalidFd> {
 		self.convert_fd.convert_fd(self.raw)

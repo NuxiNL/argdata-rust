@@ -1,19 +1,31 @@
-use container::Container;
+use container_traits::Container;
 use std::io;
 use subfield::{subfield_length, write_subfield_length};
 
 use Argdata;
-use ArgdataValue;
+use ArgdataRef;
 use ReadError;
-use Seq;
 use Value;
 
-pub struct SeqValue<T> {
+pub struct Seq<T> {
 	items: T,
 	length: usize,
 }
 
-pub fn seq<T>(items: T) -> SeqValue<T> where
+/// Create an argdata value representing a sequence.
+///
+/// Note that the data can be (partially) borrowed or owned, depending on the type of container you
+/// provide.
+///
+/// See [`container_trait::Container`](container_traits/trait.Container.html).
+///
+/// Examples:
+///
+///  - `seq(vec![a, b, c])`
+///  - `seq(&[])`
+///  - `seq(Rc::new([int(1), int(2)])`
+///
+pub fn seq<T>(items: T) -> Seq<T> where
 	T: Container,
 	<T as Container>::Item: Argdata
 {
@@ -22,10 +34,10 @@ pub fn seq<T>(items: T) -> SeqValue<T> where
 		let a = items.get(i).unwrap();
 		length += subfield_length(a.serialized_length());
 	}
-	SeqValue{ items, length }
+	Seq{ items, length }
 }
 
-impl<T> SeqValue<T> where
+impl<T> Seq<T> where
 	T: Container,
 	<T as Container>::Item: Argdata
 {
@@ -37,7 +49,7 @@ impl<T> SeqValue<T> where
 	}
 }
 
-impl<T> Argdata for SeqValue<T> where
+impl<T> Argdata for Seq<T> where
 	T: Container,
 	<T as Container>::Item: Argdata
 {
@@ -61,16 +73,16 @@ impl<T> Argdata for SeqValue<T> where
 	}
 }
 
-impl<T> Seq for SeqValue<T> where
+impl<T> ::Seq for Seq<T> where
 	T: Container,
 	<T as Container>::Item: Argdata
 {
 	fn iter_seq_next<'b>(&'b self, cookie: &mut usize) ->
-		Option<Result<ArgdataValue<'b>, ReadError>>
+		Option<Result<ArgdataRef<'b>, ReadError>>
 	{
 		self.items.get(*cookie).map(|a| {
 			*cookie += 1;
-			Ok(ArgdataValue::Reference(a))
+			Ok(ArgdataRef::reference(a))
 		})
 	}
 }

@@ -7,18 +7,19 @@ use ReadError;
 use Value;
 
 /// A big-endian 2's-complement signed arbitrary length integer.
-///
-/// Use Integer::from(BigIntValue) for access to the integral value.
-// TODO: check if Integer::from still works
-pub struct BigIntValue<T: Borrow<[u8]>> {
+pub struct BigInt<T: Borrow<[u8]>> {
 	value: T
 }
 
-pub fn bigint<T: Borrow<[u8]>>(value: T) -> BigIntValue<T> {
-	BigIntValue{ value }
+/// Create an argdata value representing an arbitrary length 2's complement integer.
+///
+/// Note that the data can be either owned or borrowed, depending on the type of container you
+/// provide. For example: bigint(vec![1, 2]) will own the bytes, and bigint(&[1, 2]) will borrow.
+pub fn bigint<T: Borrow<[u8]>>(value: T) -> BigInt<T> {
+	BigInt{ value }
 }
 
-impl<T: Borrow<[u8]>> BigIntValue<T> {
+impl<T: Borrow<[u8]>> BigInt<T> {
 	pub fn bytes(&self) -> &[u8] {
 		self.value.borrow()
 	}
@@ -28,9 +29,12 @@ impl<T: Borrow<[u8]>> BigIntValue<T> {
 	pub fn into_value(self) -> T {
 		self.value
 	}
+	pub fn integer<'a>(&'a self) -> Integer<'a> {
+		Integer::from_bigint(self.bytes())
+	}
 }
 
-impl<T: Borrow<[u8]>> Argdata for BigIntValue<T> {
+impl<T: Borrow<[u8]>> Argdata for BigInt<T> {
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Int(Integer::from_bigint(self.bytes())))
 	}

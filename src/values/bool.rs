@@ -4,21 +4,22 @@ use Argdata;
 use ReadError;
 use Value;
 
-pub struct BoolValue {
+pub struct Bool{
 	value: bool
 }
 
-pub fn bool(value: bool) -> BoolValue {
-	BoolValue{ value }
+/// Create an argdata value representing a boolean.
+pub fn bool(value: bool) -> Bool{
+	Bool{ value }
 }
 
-impl BoolValue {
+impl Bool{
 	pub fn value(&self) -> bool {
 		self.value
 	}
 }
 
-impl Argdata for BoolValue {
+impl Argdata for Bool{
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		Ok(Value::Bool(self.value))
 	}

@@ -4,25 +4,73 @@
 extern crate byteorder;
 
 use std::convert::TryFrom;
-use std::fmt;
 use std::io;
-use std::ops::Deref;
 
+/// Access to the program environment.
+///
+/// Only available on CloudABI.
 #[cfg(target_os="cloudabi")]
 pub mod env;
 
-// TODO: Decide what should be public, and what should be in the root namespace.
+/// Traits used for `Seq` and `Map` value implementations.
+pub mod container_traits;
+
+/// All the things related to file descriptors.
 pub mod fd;
+
+mod debug;
+mod errors;
 mod integer;
+mod map;
+mod reference;
+mod seq;
 mod subfield;
 mod timespec;
-mod values;
-pub mod container;
 
+pub use errors::{ReadError, NoFit, NotRead};
 pub use integer::Integer;
+pub use map::{Map, MapIterator};
+pub use reference::ArgdataRef;
+pub use seq::{Seq, SeqIterator};
 pub use timespec::Timespec;
-pub use values::*;
 
+#[path="values/mod.rs"]
+mod values_;
+
+pub use values_::{
+	encoded,
+	encoded_with_fds,
+	null,
+	binary,
+	bool,
+	float,
+	bigint,
+	int,
+	map,
+	seq,
+	str,
+	timestamp
+};
+
+/// Implementations of specific `Argdata` types.
+/// Use the functions in the root of this crate to create them.
+pub mod values {
+	pub use values_::{
+		EncodedArgdata,
+		Null,
+		Binary,
+		Bool,
+		Float,
+		BigInt,
+		Int,
+		Map,
+		Seq,
+		Str,
+		Timestamp,
+	};
+}
+
+/// The type of an argdata value.
 pub enum Type {
 	Null,
 	Binary,
@@ -36,6 +84,7 @@ pub enum Type {
 	Seq,
 }
 
+/// A (borrowed) argdata value.
 pub enum Value<'a> {
 	Null,
 	Binary(&'a [u8]),
@@ -66,82 +115,22 @@ impl<'a> Value<'a> {
 	}
 }
 
-/// An error while reading argdata.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ReadError {
-
-	/// The data contained the given tag, which doesn't correspond to any known type.
-	InvalidTag(u8),
-
-	/// The data represents a string, but it wasn't null-terminated.
-	MissingNullTerminator,
-
-	/// The data represents a string, but it contained invalid UTF-8.
-	InvalidUtf8,
-
-	/// The data represents a boolean, but it contained a value other than 'false' or 'true'.
-	InvalidBoolValue,
-
-	/// The data represents a float, but wasn't exactly 64 bits.
-	InvalidFloatLength,
-
-	/// The data represents a file descriptor, but wasn't exactly 32 bits.
-	InvalidFdLength,
-
-	/// The data represents a timestamp that does not fit in a Timespec.
-	TimestampOutOfRange,
-
-	/// The data contains a subfield (of a map or seq) with an incomplete or too large length.
-	InvalidSubfield,
-
-	/// The data contains a map with an incomplete key-value pair.
-	InvalidKeyValuePair,
-
-	/// The data represents a file descriptor that doesn't exist.
-	/// (Possibly because there were no file descriptors attached at all.)
-	InvalidFdNumber(u32),
-}
-
-/// The reason why a read_*() call didn't return a value, when there was no read error.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NoFit {
-
-	/// The value is too high or low to fit in the requested type.
-	OutOfRange,
-
-	/// The value seems to be of a different type.
-	DifferentType,
-}
-
-/// The reason why an Argdata::read_*() call didn't return a value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NotRead {
-
-	/// The value couldn't be read, because it wouldn't fit in the requested type.
-	/// (Because it the value is of a different type, or isn't big enough.)
-	NoFit(NoFit),
-
-	/// The value seems to be of the requested type, but it couldn't be read
-	/// because of an error.
-	///
-	/// No other read_*() call will work.
-	Error(ReadError),
-}
-
-impl From<ReadError> for NotRead {
-	fn from(e: ReadError) -> NotRead {
-		NotRead::Error(e)
-	}
-}
-
-impl From<NoFit> for NotRead {
-	fn from(e: NoFit) -> NotRead {
-		NotRead::NoFit(e)
-	}
-}
-
+/// An argdata value.
+///
+/// Note for implementers of this trait: Although all read methods have provided implementations,
+/// they are implemented in terms of eachother. You either need to provide:
+///
+///  - the `read()` method, or
+///  - the `get_type()` method and implementations of *all* `read_*()` methods.
+///
+/// Do the latter if `read()` would do anything non-trivial, to keep things efficient.
+///
+/// `get_type()` and `read_*()` need to be consistent, which means that `read_$TYPE()` for the type
+/// returned by `get_type()` may *not* return an `Err(NotRead::NoFit)`. Otherwise, `read()` will
+/// panic.
 pub trait Argdata {
 
+	/// Read the value.
 	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
 		let t = self.get_type()?;
 		let result = (|| match t {
@@ -163,10 +152,12 @@ pub trait Argdata {
 		}
 	}
 
+	/// Read the type of the value.
 	fn get_type(&self) -> Result<Type, ReadError> {
 		Ok(self.read()?.get_type())
 	}
 
+	/// Check if the value is null.
 	fn read_null(&self) -> Result<(), NotRead> {
 		match self.read()? {
 			Value::Null => Ok(()),
@@ -174,6 +165,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a binary blob, and read it if it is.
 	fn read_binary<'a>(&'a self) -> Result<&'a [u8], NotRead> {
 		match self.read()? {
 			Value::Binary(v) => Ok(v),
@@ -181,6 +173,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a boolean, and read it if it is.
 	fn read_bool(&self) -> Result<bool, NotRead> {
 		match self.read()? {
 			Value::Bool(v) => Ok(v),
@@ -188,6 +181,12 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a file descriptor, and return it if it is.
+	///
+	/// Even though this function succeeds (returns an `Ok()`), converting the returned `EncodedFd`
+	/// to an `Fd` might still fail.
+	///
+	/// Note: You probably want to use [`read_fd`](trait.ArgdataExt.html#tymethod.read_fd) instead.
 	fn read_encoded_fd(&self) -> Result<fd::EncodedFd, NotRead> {
 		match self.read()? {
 			Value::Fd(v) => Ok(v),
@@ -195,6 +194,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a float, and read it if it is.
 	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.read()? {
 			Value::Float(v) => Ok(v),
@@ -202,6 +202,10 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is an integer, and read it if it is.
+	///
+	/// Note: You might want to use [`read_int`](trait.ArgdataExt.html#tymethod.read_int) instead to
+	/// directly get a primitive type like `i32` or `u64`.
 	fn read_int_value<'a>(&'a self) -> Result<Integer<'a>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
@@ -209,6 +213,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a map, and get access to it if it is.
 	fn read_map<'a>(&'a self) -> Result<&'a (Map + 'a), NotRead> {
 		match self.read()? {
 			Value::Map(v) => Ok(v),
@@ -216,6 +221,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a seq, and get access to it if it is.
 	fn read_seq<'a>(&'a self) -> Result<&'a (Seq + 'a), NotRead> {
 		match self.read()? {
 			Value::Seq(v) => Ok(v),
@@ -223,6 +229,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a string, and read it if it is.
 	fn read_str<'a>(&'a self) -> Result<&'a str, NotRead> {
 		match self.read()? {
 			Value::Str(v) => Ok(v),
@@ -230,6 +237,7 @@ pub trait Argdata {
 		}
 	}
 
+	/// Check if the value is a timestamp, and read it if it is.
 	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.read()? {
 			Value::Timestamp(v) => Ok(v),
@@ -237,13 +245,21 @@ pub trait Argdata {
 		}
 	}
 
-	fn serialized_length(&self) -> usize;
-
+	/// Serialize the argdata to the given writer.
+	///
+	/// Exactly `self.serialized_bytes()` bytes are written to the writer, if no error occurs.
 	fn serialize(&self, writer: &mut io::Write) -> io::Result<()>;
+
+	/// The number of bytes that `self.serialize()` will write.
+	fn serialized_length(&self) -> usize;
 }
 
+/// Extra methods for `Argdata` values.
 pub trait ArgdataExt {
+	/// Read an integer, and convert it to the requested type if it fits.
 	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead>;
+
+	/// Read a file descriptor and convert it to an `Fd`.
 	fn read_fd(&self) -> Result<fd::Fd, NotRead>;
 }
 
@@ -256,170 +272,12 @@ impl<A> ArgdataExt for A where A: Argdata + ?Sized {
 
 	fn read_fd(&self) -> Result<fd::Fd, NotRead> {
 		self.read_encoded_fd().and_then(|fd|
-			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_fd_number()).into())
+			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_number()).into())
 		)
 	}
 }
 
-pub enum ArgdataValue<'a> {
-	Encoded(EncodedArgdata<&'a [u8], &'a (fd::ConvertFd + 'a)>),
-	Reference(&'a (Argdata + 'a)),
-}
-
-impl<'a> Deref for ArgdataValue<'a> {
-	type Target = Argdata + 'a;
-	fn deref(&self) -> &Self::Target {
-		match self {
-			&ArgdataValue::Encoded(ref argdata) => argdata,
-			&ArgdataValue::Reference(argdata) => argdata,
-		}
-	}
-}
-
-pub trait Map {
-	fn iter_map_next<'a>(&'a self, cookie: &mut usize) ->
-		Option<Result<(ArgdataValue<'a>, ArgdataValue<'a>), ReadError>>;
-}
-
-pub trait Seq {
-	fn iter_seq_next<'a>(&'a self, cookie: &mut usize) ->
-		Option<Result<ArgdataValue<'a>, ReadError>>;
-}
-
-impl<'a> Map + 'a {
-	pub fn iter_map(&'a self) -> MapIterator<'a> {
-		MapIterator{
-			map: self,
-			cookie: 0
-		}
-	}
-}
-
-impl<'a> Seq + 'a {
-	pub fn iter_seq(&'a self) -> SeqIterator<'a> {
-		SeqIterator{
-			seq: self,
-			cookie: 0
-		}
-	}
-}
-
-pub struct MapIterator<'a> {
-	map: &'a (Map + 'a),
-	cookie: usize,
-}
-
-pub struct SeqIterator<'a> {
-	seq: &'a (Seq + 'a),
-	cookie: usize,
-}
-
-impl<'a> Iterator for MapIterator<'a> {
-	type Item = Result<(ArgdataValue<'a>, ArgdataValue<'a>), ReadError>;
-	fn next(&mut self) -> Option<Self::Item> {
-		self.map.iter_map_next(&mut self.cookie)
-	}
-}
-
-impl<'a> Iterator for SeqIterator<'a> {
-	type Item = Result<ArgdataValue<'a>, ReadError>;
-	fn next(&mut self) -> Option<Self::Item> {
-		self.seq.iter_seq_next(&mut self.cookie)
-	}
-}
-
-struct FmtError<T>(Result<T, ReadError>);
-
-impl<T: fmt::Debug> fmt::Debug for FmtError<T> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		match self.0 {
-			Ok(ref value) => value.fmt(f),
-			Err(ref err) => write!(f, "error(\"{:?}\")", err),
-		}
-	}
-}
-
-impl<'a> fmt::Debug for ArgdataValue<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		self.deref().fmt(f)
-	}
-}
-
-impl<'a> fmt::Debug for Argdata + 'a {
-	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		FmtError(self.read()).fmt(f)
-	}
-}
-
-impl<'a> fmt::Debug for Value<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-		match self {
-			&Value::Null => write!(f, "null"),
-			&Value::Binary(val) => write!(f, "binary({:?})", val),
-			&Value::Bool(val) => write!(f, "{}", val),
-			&Value::Fd(fd) => write!(f, "fd({})", fd.raw_encoded_fd_number()),
-			&Value::Float(val) => write!(f, "{}", val), // TODO: pick formatter that keeps all precision
-			&Value::Int(ref val) => write!(f, "{:?}", val),
-			&Value::Str(val) => write!(f, "{:?}", val),
-			&Value::Timestamp(ref val) => write!(f, "timestamp({}, {})", val.sec, val.nsec),
-			&Value::Map(val) => {
-				let it = val.iter_map().map(|x| match x {
-					Ok((k, v)) => (FmtError(Ok(k)), FmtError(Ok(v))),
-					Err(e) => (FmtError(Err(e)), FmtError(Err(e))),
-				});
-				f.debug_map().entries(it).finish()
-			}
-			&Value::Seq(val) => {
-				let it = val.iter_seq().map(|x| FmtError(x));
-				f.debug_list().entries(it).finish()
-			}
-		}
-	}
-}
-
-trait ToArgdata {
-	type Type: Argdata;
-	fn to_argdata(self) -> Self::Type;
-}
-
-#[test]
-fn debug_fmt() {
-	let argdata = EncodedArgdata(b"\
-		\x06\x87\x08Hello\x00\x87\x08World\x00\x81\x02\x82\x02\x01\x86\x09\
-		\x70\xF1\x80\x29\x15\x84\x05\x58\xe5\xd9\x80\x83\x06\x80\x80\
-	");
-
-	assert_eq!(
-		format!("{:?}", &argdata as &Argdata),
-		"{\"Hello\": \"World\", false: true, timestamp(485, 88045333): 5826009, null: {null: null}}"
-	);
-
-	let argdata = EncodedArgdata(b"\
-		\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07\
-	");
-
-	assert_eq!(
-		format!("{:?}", &argdata as &Argdata),
-		"[false, true, null, \"Hello\", {}, []]"
-	);
-}
-
 // TODO:
-// Make member(s) of all types::* private, add argdata::from() constructor for all.
-// Fd/Resource (template arg?)
-// Owned stuff (encoded, seq, map, binary, str, bigint, ..?)
+// convert_fd while serializing
+// values::Fd
 // Fix/update/make Tests
-
-/*
-fn test() {
-	argdata::from(());
-	argdata::from(b"asdf");
-	argdata::from(true);
-	argdata::from(1.23);
-	argdata::from(17);
-	argdata::from("asdf");
-	argdata::from(argdata::Timespec{ sec: 1, nsec: 2 });
-	argdata::from(&[(&val1, &val2), (&val3, &val4)]);
-	argdata::from(&[&val1, &val2, &val3]);
-}
-*/

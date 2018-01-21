@@ -7,7 +7,7 @@ use std;
 use subfield::read_subfield;
 
 use Argdata;
-use ArgdataValue;
+use ArgdataRef;
 use Integer;
 use Map;
 use NoFit;
@@ -34,10 +34,27 @@ impl<T: Borrow<[u8]>, F: fd::ConvertFd> EncodedArgdata<T, F> {
 	}
 }
 
+/// Create an argdata value directly from an encoded argdata buffer.
+///
+/// Reading file descriptors from this value is disabled.
+///
+/// The data is not converted, it will be decoded on demand.
+///
+/// Note that the data can be either owned or borrowed, depending on the type of container you
+/// provide. For example: encoded(vec![2, 1]) will own the bytes, and encoded(&[2, 1]) will borrow.
 pub fn encoded<T: Borrow<[u8]>>(encoded: T) -> EncodedArgdata<T, fd::NoFds> {
 	EncodedArgdata{ encoded, convert_fd: fd::NoFds }
 }
 
+/// Create an argdata value directly from an encoded argdata buffer, wich has filedescriptors
+/// attached somehow.
+///
+/// Reading file descriptors will use the provided `convert_fd` object.
+///
+/// The data is not converted, it will be decoded on demand.
+///
+/// Note that the data can be either owned or borrowed, depending on the type of container you
+/// provide. For example: encoded(vec![2, 1]) will own the bytes, and encoded(&[2, 1]) will borrow.
 pub fn encoded_with_fds<T: Borrow<[u8]>, F: fd::ConvertFd>
 	(encoded: T, convert_fd: F) -> EncodedArgdata<T, F>
 {
@@ -149,11 +166,7 @@ impl<T: Borrow<[u8]>, F: fd::ConvertFd> Argdata for EncodedArgdata<T, F> {
 				}
 
 				// Read nanoseconds into an integer (128 bits are enough).
-				let sign = data.len() > 0 && data[0] >= 0x80;
-				let mut nsec = if sign { -1i128 } else { 0i128 };
-				for &b in data {
-					nsec = nsec << 8 | (b as i128);
-				}
+				let mut nsec = BigEndian::read_int128(data, data.len());
 
 				// Split seconds and nanoseconds
 				let mut sec = nsec / 1_000_000_000;
@@ -164,7 +177,9 @@ impl<T: Borrow<[u8]>, F: fd::ConvertFd> Argdata for EncodedArgdata<T, F> {
 				}
 
 				// Convert to i64 and i32, if it fits.
-				let sec: i64 = TryFrom::try_from(sec).map_err(|_| NotRead::Error(ReadError::TimestampOutOfRange))?;
+				let sec: i64 = TryFrom::try_from(sec).map_err(|_|
+					NotRead::Error(ReadError::TimestampOutOfRange)
+				)?;
 				let nsec = nsec as u32;
 
 				Ok(Timespec{sec, nsec})
@@ -184,24 +199,22 @@ impl<T: Borrow<[u8]>, F: fd::ConvertFd> Argdata for EncodedArgdata<T, F> {
 }
 
 impl<T: Borrow<[u8]>, F: fd::ConvertFd> EncodedArgdata<T, F> {
-	fn iter_subfield_next<'b>(&'b self, tag: u8, offset: &mut usize) -> Option<Result<ArgdataValue<'b>, ReadError>> {
+	fn iter_subfield_next<'b>(&'b self, tag: u8, offset: &mut usize) -> Option<Result<ArgdataRef<'b>, ReadError>> {
 		if self.bytes().get(0) != Some(&tag) { return None }
 		let (result, offset_delta) = read_subfield(&self.bytes()[1 + *offset..]);
 		*offset += offset_delta;
-		result.map(|r| r.map(|d| ArgdataValue::Encoded(
-			EncodedArgdata{ encoded: d, convert_fd: &self.convert_fd }
-		)))
+		result.map(|r| r.map(|d| ArgdataRef::encoded(d, &self.convert_fd)))
 	}
 }
 
 impl<T: Borrow<[u8]>, F: fd::ConvertFd> Seq for EncodedArgdata<T, F> {
-	fn iter_seq_next<'b>(&'b self, offset: &mut usize) -> Option<Result<ArgdataValue<'b>, ReadError>> {
+	fn iter_seq_next<'b>(&'b self, offset: &mut usize) -> Option<Result<ArgdataRef<'b>, ReadError>> {
 		self.iter_subfield_next(7, offset)
 	}
 }
 
 impl<T: Borrow<[u8]>, F: fd::ConvertFd> Map for EncodedArgdata<T, F> {
-	fn iter_map_next<'b>(&'b self, offset: &mut usize) -> Option<Result<(ArgdataValue<'b>, ArgdataValue<'b>), ReadError>> {
+	fn iter_map_next<'b>(&'b self, offset: &mut usize) -> Option<Result<(ArgdataRef<'b>, ArgdataRef<'b>), ReadError>> {
 		let key = match self.iter_subfield_next(6, offset) {
 			None => return None,
 			Some(Ok(v)) => v,

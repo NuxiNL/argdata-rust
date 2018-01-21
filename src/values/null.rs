@@ -19,3 +19,8 @@ impl Argdata for Null {
 		Ok(())
 	}
 }
+
+/// Create an argdata value representing *null*.
+pub fn null() -> Null {
+	Null
+}
