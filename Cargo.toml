@@ -1,7 +1,11 @@
 [package]
 name = "argdata"
+description = "Argdata: A binary serialization format."
 version = "0.0.1"
+documentation = "https://docs.rs/argdata/"
+keywords = ["argdata", "cloudabi"]
 authors = ["Mara Bos <m-ou.se@m-ou.se>"]
+license = "BSD-2-Clause"
 
 [dependencies]
-byteorder = "1"
+byteorder = { version = "1", features = ["i128"] }
