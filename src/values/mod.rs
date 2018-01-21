@@ -1,5 +1,5 @@
 mod encoded;
-pub use self::encoded::EncodedArgdata;
+pub use self::encoded::{EncodedArgdata, encoded, encoded_with_fds};
 
 mod null;
 pub use self::null::Null;

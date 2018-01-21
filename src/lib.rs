@@ -12,11 +12,12 @@ use std::ops::Deref;
 pub mod env;
 
 // TODO: Decide what should be public, and what should be in the root namespace.
-pub mod container;
+pub mod fd;
 mod integer;
 mod subfield;
 mod timespec;
 mod values;
+pub mod container;
 
 pub use integer::Integer;
 pub use timespec::Timespec;
@@ -39,7 +40,7 @@ pub enum Value<'a> {
 	Null,
 	Binary(&'a [u8]),
 	Bool(bool),
-	Fd(u32), // TODO
+	Fd(fd::EncodedFd<'a>),
 	Float(f64),
 	Int(Integer<'a>),
 	Str(&'a str),
@@ -54,7 +55,7 @@ impl<'a> Value<'a> {
 			&Value::Null         => Type::Null,
 			&Value::Binary(_)    => Type::Binary,
 			&Value::Bool(_)      => Type::Bool,
-			&Value::Fd(_)        => Type::Fd, // TODO
+			&Value::Fd(_)        => Type::Fd,
 			&Value::Float(_)     => Type::Float,
 			&Value::Int(_)       => Type::Int,
 			&Value::Str(_)       => Type::Str,
@@ -95,6 +96,10 @@ pub enum ReadError {
 
 	/// The data contains a map with an incomplete key-value pair.
 	InvalidKeyValuePair,
+
+	/// The data represents a file descriptor that doesn't exist.
+	/// (Possibly because there were no file descriptors attached at all.)
+	InvalidFdNumber(u32),
 }
 
 /// The reason why a read_*() call didn't return a value, when there was no read error.
@@ -143,7 +148,7 @@ pub trait Argdata {
 			Type::Null      => Ok(Value::Null),
 			Type::Binary    => Ok(Value::Binary(self.read_binary()?)),
 			Type::Bool      => Ok(Value::Bool(self.read_bool()?)),
-			Type::Fd        => unimplemented!(), //TODO self.read_fd()?,
+			Type::Fd        => Ok(Value::Fd(self.read_encoded_fd()?)),
 			Type::Float     => Ok(Value::Float(self.read_float()?)),
 			Type::Int       => Ok(Value::Int(self.read_int_value()?)),
 			Type::Str       => Ok(Value::Str(self.read_str()?)),
@@ -183,8 +188,12 @@ pub trait Argdata {
 		}
 	}
 
-	//fn read_raw_fd(&self) -> Result<u32, NotRead>;
-	//fn read_fd(&self) -> Result<TODO, NotRead>;
+	fn read_encoded_fd(&self) -> Result<fd::EncodedFd, NotRead> {
+		match self.read()? {
+			Value::Fd(v) => Ok(v),
+			_ => Err(NoFit::DifferentType.into()),
+		}
+	}
 
 	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.read()? {
@@ -235,6 +244,7 @@ pub trait Argdata {
 
 pub trait ArgdataExt {
 	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead>;
+	fn read_fd(&self) -> Result<fd::Fd, NotRead>;
 }
 
 impl<A> ArgdataExt for A where A: Argdata + ?Sized {
@@ -243,10 +253,17 @@ impl<A> ArgdataExt for A where A: Argdata + ?Sized {
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
 	}
+
+	fn read_fd(&self) -> Result<fd::Fd, NotRead> {
+		self.read_encoded_fd().and_then(|fd|
+			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_fd_number()).into())
+		)
+	}
+
 }
 
 pub enum ArgdataValue<'a> {
-	Encoded(EncodedArgdata<'a>),
+	Encoded(EncodedArgdata<'a, &'a (fd::ConvertFd + 'a)>),
 	Reference(&'a (Argdata + 'a)),
 }
 
@@ -341,7 +358,7 @@ impl<'a> fmt::Debug for Value<'a> {
 			&Value::Null => write!(f, "null"),
 			&Value::Binary(val) => write!(f, "binary({:?})", val),
 			&Value::Bool(val) => write!(f, "{}", val),
-			&Value::Fd(fd) => write!(f, "fd({})", fd),
+			&Value::Fd(fd) => write!(f, "fd({})", fd.raw_encoded_fd_number()),
 			&Value::Float(val) => write!(f, "{}", val), // TODO: pick formatter that keeps all precision
 			&Value::Int(ref val) => write!(f, "{:?}", val),
 			&Value::Str(val) => write!(f, "{:?}", val),
