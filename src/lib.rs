@@ -259,11 +259,10 @@ impl<A> ArgdataExt for A where A: Argdata + ?Sized {
 			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_fd_number()).into())
 		)
 	}
-
 }
 
 pub enum ArgdataValue<'a> {
-	Encoded(EncodedArgdata<'a, &'a (fd::ConvertFd + 'a)>),
+	Encoded(EncodedArgdata<&'a [u8], &'a (fd::ConvertFd + 'a)>),
 	Reference(&'a (Argdata + 'a)),
 }
 
