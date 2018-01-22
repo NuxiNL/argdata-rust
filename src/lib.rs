@@ -86,20 +86,20 @@ pub enum Type {
 }
 
 /// A (borrowed) argdata value.
-pub enum Value<'a> {
+pub enum Value<'a, 'd: 'a> {
 	Null,
-	Binary(&'a [u8]),
+	Binary(&'d [u8]),
 	Bool(bool),
 	Fd(fd::EncodedFd<'a>),
 	Float(f64),
-	Int(Integer<'a>),
-	Str(&'a str),
+	Int(Integer<'d>),
+	Str(&'d str),
 	Timestamp(Timespec),
-	Map(&'a (Map + 'a)),
-	Seq(&'a (Seq + 'a)),
+	Map(&'a Map<'d>),
+	Seq(&'a Seq<'d>),
 }
 
-impl<'a> Value<'a> {
+impl<'a, 'd: 'a> Value<'a, 'd> {
 	fn get_type(&self) -> Type {
 		match self {
 			&Value::Null         => Type::Null,
@@ -129,10 +129,10 @@ impl<'a> Value<'a> {
 /// `get_type()` and `read_*()` need to be consistent, which means that `read_$TYPE()` for the type
 /// returned by `get_type()` may *not* return an `Err(NotRead::NoFit)`. Otherwise, `read()` will
 /// panic.
-pub trait Argdata {
+pub trait Argdata<'d> {
 
 	/// Read the value.
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		let t = self.get_type()?;
 		let result = (|| match t {
 			Type::Null      => Ok(Value::Null),
@@ -167,7 +167,7 @@ pub trait Argdata {
 	}
 
 	/// Check if the value is a binary blob, and read it if it is.
-	fn read_binary<'a>(&'a self) -> Result<&'a [u8], NotRead> {
+	fn read_binary(&self) -> Result<&'d [u8], NotRead> {
 		match self.read()? {
 			Value::Binary(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -188,7 +188,7 @@ pub trait Argdata {
 	/// to an `Fd` might still fail.
 	///
 	/// Note: You probably want to use [`read_fd`](trait.ArgdataExt.html#tymethod.read_fd) instead.
-	fn read_encoded_fd(&self) -> Result<fd::EncodedFd, NotRead> {
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<'a>, NotRead> where 'd: 'a {
 		match self.read()? {
 			Value::Fd(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -207,7 +207,7 @@ pub trait Argdata {
 	///
 	/// Note: You might want to use [`read_int`](trait.ArgdataExt.html#tymethod.read_int) instead to
 	/// directly get a primitive type like `i32` or `u64`.
-	fn read_int_value<'a>(&'a self) -> Result<Integer<'a>, NotRead> {
+	fn read_int_value(&self) -> Result<Integer<'d>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -215,7 +215,7 @@ pub trait Argdata {
 	}
 
 	/// Check if the value is a map, and get access to it if it is.
-	fn read_map<'a>(&'a self) -> Result<&'a (Map + 'a), NotRead> {
+	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead> where 'd: 'a { // TODO: + 'a needed?
 		match self.read()? {
 			Value::Map(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -223,7 +223,7 @@ pub trait Argdata {
 	}
 
 	/// Check if the value is a seq, and get access to it if it is.
-	fn read_seq<'a>(&'a self) -> Result<&'a (Seq + 'a), NotRead> {
+	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead> where 'd: 'a {
 		match self.read()? {
 			Value::Seq(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -231,7 +231,7 @@ pub trait Argdata {
 	}
 
 	/// Check if the value is a string, and read it if it is.
-	fn read_str<'a>(&'a self) -> Result<&'a str, NotRead> {
+	fn read_str(&self) -> Result<&'d str, NotRead> {
 		match self.read()? {
 			Value::Str(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -256,16 +256,16 @@ pub trait Argdata {
 }
 
 /// Extra methods for `Argdata` values.
-pub trait ArgdataExt {
+pub trait ArgdataExt<'d> {
 	/// Read an integer, and convert it to the requested type if it fits.
-	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead>;
+	fn read_int<T: TryFrom<Integer<'d>>>(&self) -> Result<T, NotRead>;
 
 	/// Read a file descriptor and convert it to an `Fd`.
 	fn read_fd(&self) -> Result<fd::Fd, NotRead>;
 }
 
-impl<A> ArgdataExt for A where A: Argdata + ?Sized {
-	fn read_int<'a, T: TryFrom<Integer<'a>>>(&'a self) -> Result<T, NotRead> {
+impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
+	fn read_int<T: TryFrom<Integer<'d>>>(&self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)
@@ -281,4 +281,5 @@ impl<A> ArgdataExt for A where A: Argdata + ?Sized {
 // TODO:
 // convert_fd while serializing
 // values::Fd
+// owning datastructures
 // Fix/update/make Tests

@@ -23,11 +23,11 @@ impl<T: Copy> Int<T> where {
 	}
 }
 
-impl<T> Argdata for Int<T> where
+impl<'d, T> Argdata<'d> for Int<T> where
 	T: Copy,
 	Integer<'static>: From<T>
 {
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Int(Integer::from(self.value)))
 	}
 

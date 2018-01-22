@@ -21,8 +21,8 @@ impl Timestamp{
 	}
 }
 
-impl Argdata for Timestamp{
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'d> Argdata<'d> for Timestamp{
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Timestamp(self.value))
 	}
 

@@ -16,20 +16,19 @@ impl<T: fmt::Debug> fmt::Debug for FmtError<T> {
 	}
 }
 
-
-impl<'a> fmt::Debug for ArgdataRef<'a> {
+impl<'a, 'd> fmt::Debug for ArgdataRef<'a, 'd> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		self.deref().fmt(f)
 	}
 }
 
-impl<'a> fmt::Debug for Argdata + 'a {
+impl<'a, 'd> fmt::Debug for Argdata<'d> + 'a {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		FmtError(self.read()).fmt(f)
 	}
 }
 
-impl<'a> fmt::Debug for Value<'a> {
+impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		match self {
 			&Value::Null => write!(f, "null"),

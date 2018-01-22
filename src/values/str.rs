@@ -1,37 +1,26 @@
-use std::borrow::Borrow;
 use std::io;
 
 use Argdata;
 use ReadError;
 use Value;
 
-pub struct Str<T: Borrow<str>> {
-	value: T
+pub struct Str<'d> {
+	value: &'d str
 }
 
 /// Create an argdata value representing a string.
-///
-/// Note that the data can be either owned or borrowed, depending on the type of container you
-/// provide.
-/// For example: str("asdf".to_string()) will own the string, and binary(s.as_str()) will borrow.
-pub fn str<T: Borrow<str>>(value: T) -> Str<T> {
+pub fn str<'d>(value: &'d str) -> Str<'d> {
 	Str{ value }
 }
 
-impl<T: Borrow<str>> Str<T> {
-	pub fn str(&self) -> &str {
-		self.value.borrow()
-	}
-	pub fn value(&self) -> &T {
-		&self.value
-	}
-	pub fn into_value(self) -> T {
+impl<'d> Str<'d> {
+	pub fn str(&self) -> &'d str {
 		self.value
 	}
 }
 
-impl<T: Borrow<str>> Argdata for Str<T> {
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'d> Argdata<'d> for Str<'d> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Str(self.str()))
 	}
 

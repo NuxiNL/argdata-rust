@@ -7,8 +7,8 @@ use ArgdataRef;
 use ReadError;
 use Value;
 
-pub struct Seq<T> {
-	items: T,
+pub struct Seq<'d, T: 'd> {
+	items: &'d T,
 	length: usize,
 }
 
@@ -25,9 +25,9 @@ pub struct Seq<T> {
 ///  - `seq(&[])`
 ///  - `seq(Rc::new([int(1), int(2)])`
 ///
-pub fn seq<T>(items: T) -> Seq<T> where
+pub fn seq<'d, T>(items: &'d T) -> Seq<'d, T> where
 	T: Container,
-	<T as Container>::Item: Argdata
+	<T as Container>::Item: Argdata<'d>
 {
 	let mut length = 1;
 	for i in 0..items.len() {
@@ -37,24 +37,20 @@ pub fn seq<T>(items: T) -> Seq<T> where
 	Seq{ items, length }
 }
 
-impl<T> Seq<T> where
+impl<'d, T> Seq<'d, T> where
 	T: Container,
-	<T as Container>::Item: Argdata
+	<T as Container>::Item: Argdata<'d>
 {
-	pub fn items(&self) -> &T {
+	pub fn elements(&self) -> &'d T {
 		&self.items
-	}
-	pub fn into_items(self) -> T {
-		self.items
 	}
 }
 
-impl<T> Argdata for Seq<T> where
+impl<'d, T> Argdata<'d> for Seq<'d, T> where
 	T: Container,
-	<T as Container>::Item: Argdata
+	<T as Container>::Item: Argdata<'d>
 {
-
-	fn read<'b>(&'b self) -> Result<Value<'b>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Seq(self))
 	}
 
@@ -73,12 +69,12 @@ impl<T> Argdata for Seq<T> where
 	}
 }
 
-impl<T> ::Seq for Seq<T> where
+impl<'d, T> ::Seq<'d> for Seq<'d, T> where
 	T: Container,
-	<T as Container>::Item: Argdata
+	<T as Container>::Item: Argdata<'d>
 {
-	fn iter_seq_next<'b>(&'b self, cookie: &mut usize) ->
-		Option<Result<ArgdataRef<'b>, ReadError>>
+	fn iter_seq_next<'a>(&'a self, cookie: &mut usize) ->
+		Option<Result<ArgdataRef<'a, 'd>, ReadError>> where 'd: 'a
 	{
 		self.items.get(*cookie).map(|a| {
 			*cookie += 1;

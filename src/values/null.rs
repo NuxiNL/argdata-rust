@@ -6,8 +6,8 @@ use Value;
 
 pub struct Null;
 
-impl Argdata for Null {
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'d> Argdata<'d> for Null {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Null)
 	}
 

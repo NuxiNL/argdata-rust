@@ -13,14 +13,14 @@ pub fn bool(value: bool) -> Bool{
 	Bool{ value }
 }
 
-impl Bool{
+impl Bool {
 	pub fn value(&self) -> bool {
 		self.value
 	}
 }
 
-impl Argdata for Bool{
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'d> Argdata<'d> for Bool {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Bool(self.value))
 	}
 

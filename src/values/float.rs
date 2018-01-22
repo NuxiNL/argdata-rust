@@ -20,8 +20,8 @@ impl Float{
 	}
 }
 
-impl Argdata for Float{
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+impl<'d> Argdata<'d> for Float {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Float(self.value))
 	}
 

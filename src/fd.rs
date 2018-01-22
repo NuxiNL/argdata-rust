@@ -43,12 +43,12 @@ impl<'a, T> ConvertFd for &'a T where T: ConvertFd + 'a + ?Sized {
 #[derive(Clone, Copy)]
 pub struct EncodedFd<'a> {
 	raw: u32,
-	convert_fd: &'a (ConvertFd + 'a),
+	convert_fd: &'a ConvertFd,
 }
 
 impl<'a> EncodedFd<'a> {
 	/// Create an EncodedFd that will convert `raw` to an Fd using `convert_fd`.
-	pub fn new(raw: u32, convert_fd: &'a (ConvertFd + 'a)) -> EncodedFd<'a> {
+	pub fn new(raw: u32, convert_fd: &'a ConvertFd) -> EncodedFd<'a> {
 		EncodedFd{ raw, convert_fd }
 	}
 

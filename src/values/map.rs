@@ -7,28 +7,26 @@ use ArgdataRef;
 use ReadError;
 use Value;
 
-pub struct Map<T> {
-	items: T,
+pub struct Map<'d, T: 'd> {
+	items: &'d T,
 	length: usize,
 }
 
 /// Create an argdata value representing a map.
 ///
-/// Note that the data can be (partially) borrowed or owned, depending on the type of container you
-/// provide. Also, both a pair of lists and a list of pairs are acceptable containers for `map()`.
-///
+/// Both a pair of lists and a list of pairs are acceptable containers for `map()`.
 /// See [`container_trait::MapContainer`](container_traits/trait.MapContainer.html).
 ///
 /// Examples:
 ///
-///  - `map(vec![(key, val), (key, val)])`
+///  - `map(&[(key, val), (key, val)])`
 ///  - `map(&[])`
-///  - `let keys = vec![...]; let values = &[...]; map((keys, values))`
+///  - `let keys = vec![...]; let values = &[...]; map(&(keys, values))`
 ///
-pub fn map<T>(items: T) -> Map<T> where
+pub fn map<'d, T>(items: &'d T) -> Map<'d, T> where
 	T: MapContainer,
-	<T as MapContainer>::Key: Argdata,
-	<T as MapContainer>::Value: Argdata,
+	<T as MapContainer>::Key: Argdata<'d>,
+	<T as MapContainer>::Value: Argdata<'d>,
 {
 	let mut length = 1;
 	for i in 0..items.len() {
@@ -39,25 +37,22 @@ pub fn map<T>(items: T) -> Map<T> where
 	Map{ items, length }
 }
 
-impl<T> Map<T> where
+impl<'d, T> Map<'d, T> where
 	T: MapContainer,
-	<T as MapContainer>::Key: Argdata,
-	<T as MapContainer>::Value: Argdata,
+	<T as MapContainer>::Key: Argdata<'d>,
+	<T as MapContainer>::Value: Argdata<'d>,
 {
-	pub fn items(&self) -> &T {
-		&self.items
-	}
-	pub fn into_items(self) -> T {
+	pub fn elements(&self) -> &'d T {
 		self.items
 	}
 }
 
-impl<T> Argdata for Map<T> where
+impl<'d, T> Argdata<'d> for Map<'d, T> where
 	T: MapContainer,
-	<T as MapContainer>::Key: Argdata,
-	<T as MapContainer>::Value: Argdata,
+	<T as MapContainer>::Key: Argdata<'d>,
+	<T as MapContainer>::Value: Argdata<'d>,
 {
-	fn read<'a>(&'a self) -> Result<Value<'a>, ReadError> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Map(self))
 	}
 
@@ -78,13 +73,14 @@ impl<T> Argdata for Map<T> where
 	}
 }
 
-impl<T> ::Map for Map<T> where
+impl<'d, T> ::Map<'d> for Map<'d, T> where
 	T: MapContainer,
-	<T as MapContainer>::Key: Argdata,
-	<T as MapContainer>::Value: Argdata,
+	<T as MapContainer>::Key: Argdata<'d>,
+	<T as MapContainer>::Value: Argdata<'d>,
 {
-	fn iter_map_next<'b>(&'b self, cookie: &mut usize) ->
-		Option<Result<(ArgdataRef<'b>, ArgdataRef<'b>), ReadError>>
+	fn iter_map_next<'a>(&'a self, cookie: &mut usize) ->
+		Option<Result<(ArgdataRef<'a, 'd>, ArgdataRef<'a, 'd>), ReadError>>
+		where 'd: 'a
 	{
 		self.items.get(*cookie).map(|(k, v)| {
 			*cookie += 1;

@@ -1,33 +1,32 @@
-use std::borrow::Borrow;
 use std::io;
 
 use Argdata;
 use ReadError;
 use Value;
 
-pub struct Binary<T: Borrow<[u8]>> {
-	value: T
+pub struct Binary<'d> {
+	value: &'d [u8]
 }
 
 /// Create an argdata value representing a binary blob.
-///
-/// Note that the data can be either owned or borrowed, depending on the type of container you
-/// provide. For example: binary(vec![1, 2]) will own the bytes, and binary(&[1, 2]) will borrow.
-pub fn binary<T: Borrow<[u8]>>(value: T) -> Binary<T> {
+pub fn binary<'d>(value: &'d [u8]) -> Binary<'d> {
 	Binary{ value }
 }
 
-impl<T: Borrow<[u8]>> Binary<T> {
-	pub fn bytes(&self) -> &[u8] {
-		self.value.borrow()
-	}
-	pub fn into_value(self) -> T {
+impl<'d> Binary<'d> {
+	pub fn bytes(&self) -> &'d [u8] {
 		self.value
 	}
+	//pub fn value(&self) -> &T {
+	//	&self.value
+	//}
+	//pub fn into_value(self) -> T {
+	//	self.value
+	//}
 }
 
-impl<T: Borrow<[u8]>> Argdata for Binary<T> {
-	fn read<'b>(&'b self) -> Result<Value<'b>, ReadError> {
+impl<'d> Argdata<'d> for Binary<'d> {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		Ok(Value::Binary(self.bytes()))
 	}
 
