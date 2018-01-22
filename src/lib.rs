@@ -71,6 +71,7 @@ pub mod values {
 }
 
 /// The type of an argdata value.
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Type {
 	Null,
 	Binary,
