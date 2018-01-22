@@ -283,3 +283,27 @@ impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
 // values::Fd
 // owning datastructures
 // Fix/update/make Tests
+
+#[allow(dead_code)]
+fn example<'d>(ad: &Argdata<'d>) {
+	// If this stops compiling, then something is wrong
+	// with the lifetimes of Argdata. :)
+
+	let mut sock_fd = None;
+	let mut read_fd = None;
+	let mut message = None;
+
+	let mut it = ad.read_map().expect("argdata should be a map").iter_map();
+	while let Some(Ok((key, val))) = it.next() {
+		match key.read_str().expect("keys should be strings") {
+			"socket"  => sock_fd = val.read_fd().ok(),
+			"logfile" => read_fd = val.read_fd().ok(),
+			"message" => message = val.read_str().ok(),
+			_ => {}
+		}
+	}
+
+	drop(sock_fd);
+	drop(read_fd);
+	drop(message);
+}
