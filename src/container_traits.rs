@@ -52,14 +52,6 @@ impl<T, K, V> MapContainer for T where
 	}
 }
 
-
-/*
-
-Vec<(K, V)>
-(Vec<K>, Vec<V>)
-
-*/
-
 macro_rules! impl_container {
 	(($($a:tt)*) $t:ty) => {
 		impl<$($a)*> Container for $t {
