@@ -4,7 +4,7 @@ use Argdata;
 use ReadError;
 use Value;
 
-pub struct Bool{
+pub struct Bool {
 	value: bool
 }
 

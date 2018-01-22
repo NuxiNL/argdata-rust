@@ -10,11 +10,11 @@ pub struct Float{
 }
 
 /// Create an argdata value representing a 64-bit floating point value.
-pub fn float<T: Into<f64>>(value: T) -> Float{
+pub fn float<T: Into<f64>>(value: T) -> Float {
 	Float{ value: value.into() }
 }
 
-impl Float{
+impl Float {
 	pub fn value(&self) -> f64 {
 		self.value
 	}
