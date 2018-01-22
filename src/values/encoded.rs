@@ -36,8 +36,8 @@ pub fn encoded<'d>(encoded: &'d [u8]) -> EncodedArgdata<'d, fd::NoFds> {
 	EncodedArgdata{ encoded, convert_fd: fd::NoFds }
 }
 
-/// Create an argdata value directly from an encoded argdata buffer, wich has filedescriptors
-/// attached somehow.
+/// Create an argdata value directly from an encoded argdata buffer, which has
+/// file descriptors attached in some way.
 ///
 /// Reading file descriptors will use the provided `convert_fd` object.
 ///
