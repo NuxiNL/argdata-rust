@@ -30,7 +30,7 @@ pub enum ReadError {
 	InvalidKeyValuePair,
 
 	/// The data represents a file descriptor that doesn't exist.
-	/// (Possibly because there were no file descriptors attached at all.)
+	/// (Possibly because there were no file descriptors 'attached' to the argdata value at all.)
 	InvalidFdNumber(u32),
 }
 
@@ -55,8 +55,6 @@ pub enum NotRead {
 
 	/// The value seems to be of the requested type, but it couldn't be read
 	/// because of an error.
-	///
-	/// No other read_*() call will work.
 	Error(ReadError),
 }
 
