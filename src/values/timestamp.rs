@@ -42,7 +42,7 @@ impl Argdata for Timestamp{
 	}
 }
 
-impl Timestamp{
+impl Timestamp {
 	fn nanoseconds(&self) -> i128 {
 		self.value.sec as i128 + self.value.nsec as i128 * 1_000_000_000
 	}
