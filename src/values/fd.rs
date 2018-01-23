@@ -13,7 +13,7 @@ pub fn process_fd(fd: c_int) -> fd::Fd {
 
 /// Create an argdata value representing a file descriptor attached to the data.
 pub fn encoded_fd<T: fd::ConvertFd>(raw: u32, convert_fd: T) -> fd::EncodedFd<T> {
-	fd::EncodedFd{ raw, convert_fd }
+	fd::EncodedFd::new(raw, convert_fd)
 }
 
 /// Create an argdata value representing an invalid file descriptor.

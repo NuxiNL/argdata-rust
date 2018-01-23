@@ -34,6 +34,11 @@ pub struct NoConvert;
 pub struct ConvertFdFn<F: Fn(u32) -> Result<Fd, InvalidFd>>(pub F);
 
 impl<T: ConvertFd> EncodedFd<T> {
+	/// Create an EncodedFd that will convert `raw` to an `Fd` using `convert_fd`.
+	pub fn new(raw: u32, convert_fd: T) -> EncodedFd<T> {
+		EncodedFd{ raw, convert_fd }
+	}
+
 	/// The 32-bit file descriptor number exactly as encoded in the raw argdata.
 	pub fn raw_encoded_number(&self) -> u32 {
 		self.raw
