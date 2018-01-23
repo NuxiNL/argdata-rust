@@ -215,7 +215,7 @@ pub trait Argdata<'d> {
 	}
 
 	/// Check if the value is a map, and get access to it if it is.
-	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead> where 'd: 'a { // TODO: + 'a needed?
+	fn read_map<'a>(&'a self) -> Result<&'a Map<'d>, NotRead> where 'd: 'a {
 		match self.read()? {
 			Value::Map(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -223,7 +223,7 @@ pub trait Argdata<'d> {
 	}
 
 	/// Check if the value is a seq, and get access to it if it is.
-	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead> where 'd: 'a {
+	fn read_seq<'a>(&'a self) -> Result<&'a Seq<'d>, NotRead> where 'd: 'a {
 		match self.read()? {
 			Value::Seq(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
