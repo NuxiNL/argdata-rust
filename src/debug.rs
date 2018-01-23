@@ -76,4 +76,3 @@ fn debug_fmt() {
 		"[false, true, null, \"Hello\", {}, []]"
 	);
 }
-
