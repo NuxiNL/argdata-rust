@@ -17,12 +17,6 @@ impl<'d> Binary<'d> {
 	pub fn bytes(&self) -> &'d [u8] {
 		self.value
 	}
-	//pub fn value(&self) -> &T {
-	//	&self.value
-	//}
-	//pub fn into_value(self) -> T {
-	//	self.value
-	//}
 }
 
 impl<'d> Argdata<'d> for Binary<'d> {
