@@ -1,5 +1,6 @@
 use Argdata;
 use ReadError;
+use StrValue;
 use Value;
 use fd;
 use std::io;
@@ -21,7 +22,7 @@ impl<'d> Str<'d> {
 
 impl<'d> Argdata<'d> for Str<'d> {
 	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
-		Ok(Value::Str(self.str()))
+		Ok(Value::Str(StrValue::from_str(self.str())))
 	}
 
 	fn serialized_length(&self) -> usize {

@@ -37,7 +37,8 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 			&Value::Fd(ref fd) => write!(f, "fd({})", fd.raw_encoded_number()),
 			&Value::Float(val) => write!(f, "{}", val), // TODO: pick formatter that keeps full precision
 			&Value::Int(ref val) => write!(f, "{:?}", val),
-			&Value::Str(val) => write!(f, "{:?}", val),
+			&Value::Str(ref val) =>
+				write!(f, "{:?}", FmtError(val.as_str().map_err(|_| ReadError::InvalidUtf8))),
 			&Value::Timestamp(ref val) => write!(f, "timestamp({}, {})", val.sec, val.nsec),
 			&Value::Map(val) => {
 				let it = val.iter_map().map(|x| match x {

@@ -24,6 +24,7 @@ mod integer;
 mod map;
 mod reference;
 mod seq;
+mod strvalue;
 mod subfield;
 mod timespec;
 
@@ -32,6 +33,7 @@ pub use integer::Integer;
 pub use map::{Map, MapIterator};
 pub use reference::ArgdataRef;
 pub use seq::{Seq, SeqIterator};
+pub use strvalue::StrValue;
 pub use timespec::Timespec;
 
 #[path="values/mod.rs"]
@@ -95,8 +97,8 @@ pub enum Value<'a, 'd: 'a> {
 	Bool(bool),
 	Fd(fd::EncodedFd<&'a fd::ConvertFd>),
 	Float(f64),
-	Int(Integer<'d>),
-	Str(&'d str),
+	Int(Integer<'d>), // TODO: Rename Integer to IntValue?
+	Str(StrValue<'d>),
 	Timestamp(Timespec),
 	Map(&'a Map<'d>),
 	Seq(&'a Seq<'d>),
@@ -144,7 +146,7 @@ pub trait Argdata<'d> {
 			Type::Fd        => Ok(Value::Fd(self.read_encoded_fd()?)),
 			Type::Float     => Ok(Value::Float(self.read_float()?)),
 			Type::Int       => Ok(Value::Int(self.read_int_value()?)),
-			Type::Str       => Ok(Value::Str(self.read_str()?)),
+			Type::Str       => Ok(Value::Str(self.read_str_value()?)),
 			Type::Timestamp => Ok(Value::Timestamp(self.read_timestamp()?)),
 			Type::Map       => Ok(Value::Map(self.read_map()?)),
 			Type::Seq       => Ok(Value::Seq(self.read_seq()?)),
@@ -234,7 +236,10 @@ pub trait Argdata<'d> {
 	}
 
 	/// Check if the value is a string, and read it if it is.
-	fn read_str(&self) -> Result<&'d str, NotRead> {
+	///
+	/// Note: You probably want to use [`read_str`](trait.ArgdataExt.html#tymethod.read_str) instead
+	/// to directly get a `&str`.
+	fn read_str_value(&self) -> Result<StrValue<'d>, NotRead> {
 		match self.read()? {
 			Value::Str(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -269,6 +274,9 @@ pub trait ArgdataExt<'d> {
 
 	/// Read a file descriptor and convert it to an `Fd`.
 	fn read_fd(&self) -> Result<fd::Fd, NotRead>;
+
+	/// Read a string, and check if it's valid UTF-8.
+	fn read_str(&self) -> Result<&'d str, NotRead>;
 }
 
 impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
@@ -281,6 +289,12 @@ impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
 	fn read_fd(&self) -> Result<fd::Fd, NotRead> {
 		self.read_encoded_fd().and_then(|fd|
 			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_number()).into())
+		)
+	}
+
+	fn read_str(&self) -> Result<&'d str, NotRead> {
+		self.read_str_value().and_then(|v|
+			v.as_str().map_err(|_| ReadError::InvalidUtf8.into())
 		)
 	}
 }

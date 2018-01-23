@@ -6,6 +6,7 @@ use NoFit;
 use NotRead;
 use ReadError;
 use Seq;
+use StrValue;
 use Timespec;
 use Type;
 use byteorder::{ByteOrder, BigEndian};
@@ -13,7 +14,6 @@ use encoded_fd;
 use fd;
 use std::convert::TryFrom;
 use std::io;
-use std;
 use subfield::read_subfield;
 
 pub struct EncodedArgdata<'d, F> {
@@ -128,15 +128,12 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_str(&self) -> Result<&'d str, NotRead> {
+	fn read_str_value(&self) -> Result<StrValue<'d>, NotRead> {
 		match self.bytes().split_first() {
-			Some((&8, data)) => match data.split_last() {
-				Some((&0, str_bytes)) =>
-					std::str::from_utf8(str_bytes).map_err(|_|
-						NotRead::Error(ReadError::InvalidUtf8)
-					),
-				_ => Err(NotRead::Error(ReadError::MissingNullTerminator)),
-			}
+			Some((&8, data)) if data.last() == Some(&0) =>
+				Ok(StrValue::from_bytes_with_nul(data)),
+			Some((&8, _)) =>
+				Err(ReadError::MissingNullTerminator.into()),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
