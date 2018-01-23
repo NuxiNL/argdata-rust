@@ -1,8 +1,8 @@
-use std::io;
-
 use Argdata;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 pub struct Bool {
 	value: bool
@@ -31,7 +31,7 @@ impl<'d> Argdata<'d> for Bool {
 		}
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		match self.value {
 			false => writer.write_all(&[2]),
 			true => writer.write_all(&[2, 1]),

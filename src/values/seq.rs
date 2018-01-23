@@ -1,11 +1,11 @@
-use container_traits::Container;
-use std::io;
-use subfield::{subfield_length, write_subfield_length};
-
 use Argdata;
 use ArgdataRef;
 use ReadError;
 use Value;
+use container_traits::Container;
+use fd;
+use std::io;
+use subfield::{subfield_length, write_subfield_length};
 
 pub struct Seq<'d, T: 'd> {
 	items: &'d T,
@@ -58,12 +58,12 @@ impl<'d, T> Argdata<'d> for Seq<'d, T> where
 		self.length
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, mut fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[7])?;
 		for i in 0..self.items.len() {
 			let a = self.items.get(i).unwrap();
 			write_subfield_length(a.serialized_length(), writer)?;
-			a.serialize(writer)?;
+			a.serialize(writer, if let Some(ref mut m) = fd_map { Some(*m) } else { None })?;
 		}
 		Ok(())
 	}

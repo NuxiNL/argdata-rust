@@ -1,9 +1,9 @@
-use byteorder::{ByteOrder, BigEndian};
-use std::io;
-
 use Argdata;
 use ReadError;
 use Value;
+use byteorder::{ByteOrder, BigEndian};
+use fd;
+use std::io;
 
 pub struct Float{
 	value: f64
@@ -29,7 +29,7 @@ impl<'d> Argdata<'d> for Float {
 		9
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		let mut buf = [0u8; 8];
 		BigEndian::write_f64(&mut buf, self.value);
 		writer.write_all(&[5])?;

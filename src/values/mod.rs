@@ -10,6 +10,9 @@ pub use self::binary::{Binary, binary};
 mod bool;
 pub use self::bool::{Bool, bool};
 
+mod fd;
+pub use self::fd::{process_fd, encoded_fd, invalid_fd};
+
 mod float;
 pub use self::float::{Float, float};
 

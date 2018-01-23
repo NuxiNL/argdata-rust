@@ -1,9 +1,9 @@
-use std::io;
-
 use Argdata;
 use Integer;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 pub struct Int<T> {
 	value: T
@@ -35,7 +35,7 @@ impl<'d, T> Argdata<'d> for Int<T> where
 		Integer::from(self.value).serialized_length() + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[5])?;
 		Integer::from(self.value).serialize(writer)
 	}

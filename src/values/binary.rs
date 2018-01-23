@@ -1,8 +1,8 @@
-use std::io;
-
 use Argdata;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 pub struct Binary<'d> {
 	value: &'d [u8]
@@ -28,7 +28,7 @@ impl<'d> Argdata<'d> for Binary<'d> {
 		self.bytes().len() + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[1])?;
 		writer.write_all(self.bytes())?;
 		Ok(())

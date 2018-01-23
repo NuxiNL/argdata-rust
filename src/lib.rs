@@ -44,6 +44,9 @@ pub use values_::{
 	binary,
 	bool,
 	float,
+	process_fd,
+	encoded_fd,
+	invalid_fd,
 	bigint,
 	int,
 	map,
@@ -90,7 +93,7 @@ pub enum Value<'a, 'd: 'a> {
 	Null,
 	Binary(&'d [u8]),
 	Bool(bool),
-	Fd(fd::EncodedFd<'a>),
+	Fd(fd::EncodedFd<&'a fd::ConvertFd>),
 	Float(f64),
 	Int(Integer<'d>),
 	Str(&'d str),
@@ -188,7 +191,7 @@ pub trait Argdata<'d> {
 	/// to an `Fd` might still fail.
 	///
 	/// Note: You probably want to use [`read_fd`](trait.ArgdataExt.html#tymethod.read_fd) instead.
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<'a>, NotRead> where 'd: 'a {
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead> where 'd: 'a {
 		match self.read()? {
 			Value::Fd(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -249,7 +252,11 @@ pub trait Argdata<'d> {
 	/// Serialize the argdata to the given writer.
 	///
 	/// Exactly `self.serialized_bytes()` bytes are written to the writer, if no error occurs.
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()>;
+	///
+	/// File descriptors are mapped using `fd_map`.
+	/// If it is None, encoded file descriptors will be kept as is, and actual
+	/// file descriptors will be encoded as `-1` (invalid).
+	fn serialize(&self, writer: &mut io::Write, fd_map: Option<&mut fd::FdMapping>) -> io::Result<()>;
 
 	/// The number of bytes that `self.serialize()` will write.
 	fn serialized_length(&self) -> usize;
@@ -279,8 +286,6 @@ impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
 }
 
 // TODO:
-// convert_fd while serializing
-// values::Fd
 // owning datastructures
 // Fix/update/make Tests
 

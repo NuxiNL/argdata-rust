@@ -34,7 +34,7 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 			&Value::Null => write!(f, "null"),
 			&Value::Binary(val) => write!(f, "binary({:?})", val),
 			&Value::Bool(val) => write!(f, "{}", val),
-			&Value::Fd(fd) => write!(f, "fd({})", fd.raw_encoded_number()),
+			&Value::Fd(ref fd) => write!(f, "fd({})", fd.raw_encoded_number()),
 			&Value::Float(val) => write!(f, "{}", val), // TODO: pick formatter that keeps full precision
 			&Value::Int(ref val) => write!(f, "{:?}", val),
 			&Value::Str(val) => write!(f, "{:?}", val),

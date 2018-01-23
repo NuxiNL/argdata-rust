@@ -1,9 +1,9 @@
-use std::io;
-
 use Argdata;
 use Integer;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 /// A big-endian 2's-complement signed arbitrary length integer.
 pub struct BigInt<'d> {
@@ -33,7 +33,7 @@ impl<'d> Argdata<'d> for BigInt<'d> {
 		self.bytes().len() + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[5])?;
 		writer.write_all(self.bytes())?;
 		Ok(())

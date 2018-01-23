@@ -1,11 +1,11 @@
-use container_traits::MapContainer;
-use std::io;
-use subfield::{subfield_length, write_subfield_length};
-
 use Argdata;
 use ArgdataRef;
 use ReadError;
 use Value;
+use container_traits::MapContainer;
+use fd;
+use std::io;
+use subfield::{subfield_length, write_subfield_length};
 
 pub struct Map<'d, T: 'd> {
 	items: &'d T,
@@ -60,14 +60,14 @@ impl<'d, T> Argdata<'d> for Map<'d, T> where
 		self.length
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, mut fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[6])?;
 		for i in 0..self.items.len() {
 			let (k, v) = self.items.get(i).unwrap();
 			write_subfield_length(k.serialized_length(), writer)?;
-			k.serialize(writer)?;
+			k.serialize(writer, if let Some(ref mut m) = fd_map { Some(*m) } else { None })?;
 			write_subfield_length(v.serialized_length(), writer)?;
-			v.serialize(writer)?;
+			v.serialize(writer, if let Some(ref mut m) = fd_map { Some(*m) } else { None })?;
 		}
 		Ok(())
 	}

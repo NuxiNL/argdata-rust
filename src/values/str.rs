@@ -1,8 +1,8 @@
-use std::io;
-
 use Argdata;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 pub struct Str<'d> {
 	value: &'d str
@@ -28,7 +28,7 @@ impl<'d> Argdata<'d> for Str<'d> {
 		self.str().len() + 2
 	}
 
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[8])?;
 		writer.write_all(self.str().as_bytes())?;
 		writer.write_all(&[0])?;

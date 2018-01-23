@@ -1,8 +1,8 @@
-use std::io;
-
 use Argdata;
 use ReadError;
 use Value;
+use fd;
+use std::io;
 
 pub struct Null;
 
@@ -15,7 +15,7 @@ impl<'d> Argdata<'d> for Null {
 		0
 	}
 
-	fn serialize(&self, _writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, _: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		Ok(())
 	}
 }

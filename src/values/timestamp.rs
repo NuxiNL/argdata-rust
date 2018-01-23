@@ -1,10 +1,10 @@
-use byteorder::{ByteOrder, BigEndian};
-use std::io;
-
 use Argdata;
 use ReadError;
 use Timespec;
 use Value;
+use byteorder::{ByteOrder, BigEndian};
+use fd;
+use std::io;
 
 pub struct Timestamp {
 	value: Timespec
@@ -31,7 +31,7 @@ impl<'d> Argdata<'d> for Timestamp{
 	}
 
 	// TODO: Test.
-	fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[9])?;
 		let nsec = self.nanoseconds();
 		let n = i128_serialized_length(nsec);
