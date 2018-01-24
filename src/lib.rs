@@ -7,9 +7,6 @@ use std::convert::TryFrom;
 use std::io;
 
 /// Access to the program environment.
-///
-/// Only available on CloudABI.
-#[cfg(target_os="cloudabi")]
 pub mod env;
 
 /// Traits used for `Seq` and `Map` value implementations.
