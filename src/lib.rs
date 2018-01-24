@@ -1,6 +1,12 @@
 #![feature(i128_type)]
 #![feature(try_from)]
 
+//! **Please note:**
+//! This crate is not yet stable.
+//! The interface can and will change.
+//! Almost nothing is tested yet.
+//! Deserialization probably works, but serialization has bugs.
+
 extern crate byteorder;
 
 use std::convert::TryFrom;
