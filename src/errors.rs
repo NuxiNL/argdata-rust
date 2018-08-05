@@ -40,6 +40,7 @@ pub enum ReadError {
 
 impl Error for ReadError {
 	fn description(&self) -> &str {
+		#[cfg_attr(rustfmt, rustfmt_skip)]
 		match self {
 			ReadError::InvalidTag(_)         => "Invalid argdata tag",
 			ReadError::MissingNullTerminator => "Argdata contains a string without nul terminator",

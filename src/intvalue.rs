@@ -166,6 +166,7 @@ impl<'a> PartialOrd<IntValue<'a>> for IntValue<'a> {
 // TODO: test
 impl<'a> Ord for IntValue<'a> {
 	fn cmp(&self, other: &Self) -> Ordering {
+		#[cfg_attr(rustfmt, rustfmt_skip)]
 		match (&self.inner, &other.inner) {
 			(&Inner::Unsigned(a), &Inner::Unsigned(b))             => a.cmp(&b),
 			(&Inner::Unsigned(_), &Inner::Big(b)) if !sign(b)      => Ordering::Less,

@@ -65,6 +65,7 @@ fn i128_serialized_length(v: i128) -> usize {
 
 #[test]
 fn timestamp_serialize_test() {
+	#[cfg_attr(rustfmt, rustfmt_skip)]
 	for &(timespec, serialized) in &[
 		(Timespec { sec:  0, nsec: 0           }, &b"\x09"[..]),
 		(Timespec { sec:  0, nsec: 1           }, &b"\x09\x01"[..]),

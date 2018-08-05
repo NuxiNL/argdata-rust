@@ -37,6 +37,7 @@ pub enum Value<'a, 'd: 'a> {
 
 impl<'a, 'd: 'a> Value<'a, 'd> {
 	pub fn get_type(&self) -> Type {
+		#[cfg_attr(rustfmt, rustfmt_skip)]
 		match self {
 			Value::Null         => Type::Null,
 			Value::Binary(_)    => Type::Binary,

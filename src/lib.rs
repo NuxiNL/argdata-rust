@@ -76,6 +76,7 @@ pub trait Argdata<'d> {
 		'd: 'a,
 	{
 		let t = self.get_type()?;
+		#[cfg_attr(rustfmt, rustfmt_skip)]
 		let result = match t {
 			Type::Null      => Ok(Value::Null),
 			Type::Binary    => self.read_binary()    .map(Value::Binary),
