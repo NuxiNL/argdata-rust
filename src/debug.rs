@@ -48,7 +48,7 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 				f.debug_map().entries(it).finish()
 			}
 			&Value::Seq(val) => {
-				let it = val.iter_seq().map(|x| FmtError(x));
+				let it = val.iter_seq().map(FmtError);
 				f.debug_list().entries(it).finish()
 			}
 		}
