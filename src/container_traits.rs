@@ -3,7 +3,7 @@ use std::cmp::min;
 use std::rc::Rc;
 use std::sync::Arc;
 
-/// a random-access container.
+/// A random-access container.
 pub trait Container {
 	type Item;
 	fn get(&self, index: usize) -> Option<&Self::Item>;
