@@ -1,4 +1,3 @@
-#![feature(i128_type)]
 #![feature(try_from)]
 
 //! **Please note:**
