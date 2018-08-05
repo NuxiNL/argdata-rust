@@ -1,18 +1,20 @@
+use byteorder::{BigEndian, ByteOrder};
+use fd;
+use std::io;
 use Argdata;
 use ReadError;
 use Value;
-use byteorder::{ByteOrder, BigEndian};
-use fd;
-use std::io;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
-pub struct Float{
-	value: f64
+pub struct Float {
+	value: f64,
 }
 
 /// Create an argdata value representing a 64-bit floating point value.
 pub fn float<T: Into<f64>>(value: T) -> Float {
-	Float{ value: value.into() }
+	Float {
+		value: value.into(),
+	}
 }
 
 impl Float {
@@ -22,7 +24,10 @@ impl Float {
 }
 
 impl<'d> Argdata<'d> for Float {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Float(self.value))
 	}
 

@@ -1,21 +1,22 @@
+use fd;
+use std::io;
 use Argdata;
 use IntValue;
 use ReadError;
 use Value;
-use fd;
-use std::io;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Int<T> {
-	value: T
+	value: T,
 }
 
 /// Create an argdata value representing an integer (of fixed width, e.g. `i32`).
-pub fn int<T>(value: T) -> Int<T> where
+pub fn int<T>(value: T) -> Int<T>
+where
 	T: Copy,
 	IntValue<'static>: From<T>,
 {
-	Int{ value }
+	Int { value }
 }
 
 impl<T: Copy> Int<T> where {
@@ -24,11 +25,15 @@ impl<T: Copy> Int<T> where {
 	}
 }
 
-impl<'d, T> Argdata<'d> for Int<T> where
+impl<'d, T> Argdata<'d> for Int<T>
+where
 	T: Copy,
-	IntValue<'static>: From<T>
+	IntValue<'static>: From<T>,
 {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Int(IntValue::from(self.value)))
 	}
 

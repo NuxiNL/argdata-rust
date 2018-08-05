@@ -1,35 +1,35 @@
 mod encoded;
-pub use self::encoded::{EncodedArgdata, encoded, encoded_with_fds};
+pub use self::encoded::{encoded, encoded_with_fds, EncodedArgdata};
 
 mod null;
-pub use self::null::{Null, null};
+pub use self::null::{null, Null};
 
 mod binary;
-pub use self::binary::{Binary, binary};
+pub use self::binary::{binary, Binary};
 
 mod bool;
-pub use self::bool::{Bool, bool};
+pub use self::bool::{bool, Bool};
 
 mod fd;
-pub use self::fd::{process_fd, encoded_fd, invalid_fd};
+pub use self::fd::{encoded_fd, invalid_fd, process_fd};
 
 mod float;
-pub use self::float::{Float, float};
+pub use self::float::{float, Float};
 
 mod bigint;
-pub use self::bigint::{BigInt, bigint};
+pub use self::bigint::{bigint, BigInt};
 
 mod int;
-pub use self::int::{Int, int};
+pub use self::int::{int, Int};
 
 mod map;
-pub use self::map::{Map, map};
+pub use self::map::{map, Map};
 
 mod seq;
-pub use self::seq::{Seq, seq};
+pub use self::seq::{seq, Seq};
 
 mod str;
-pub use self::str::{Str, str};
+pub use self::str::{str, Str};
 
 mod timestamp;
-pub use self::timestamp::{Timestamp, timestamp};
+pub use self::timestamp::{timestamp, Timestamp};

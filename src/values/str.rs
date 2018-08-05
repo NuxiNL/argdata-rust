@@ -1,18 +1,18 @@
+use fd;
+use std::io;
 use Argdata;
 use ReadError;
 use StrValue;
 use Value;
-use fd;
-use std::io;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Str<'d> {
-	value: &'d str
+	value: &'d str,
 }
 
 /// Create an argdata value representing a string.
 pub fn str<'d>(value: &'d str) -> Str<'d> {
-	Str{ value }
+	Str { value }
 }
 
 impl<'d> Str<'d> {
@@ -22,7 +22,10 @@ impl<'d> Str<'d> {
 }
 
 impl<'d> Argdata<'d> for Str<'d> {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Str(StrValue::from_str(self.str())))
 	}
 
