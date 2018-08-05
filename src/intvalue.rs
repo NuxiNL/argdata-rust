@@ -5,13 +5,13 @@ use std::fmt;
 use std::io;
 use std::num::TryFromIntError;
 
-/// Represents a signed integer of any size.
+/// Represents a signed integer value of any size.
 ///
 /// An integer that fits in a `u64` or `i64` is directly stored in the object.
 /// Anything bigger is stored somewhere else (with lifetime `'a`) as a 2's complement big-endian
 /// integer in the form of an `[u8]`.
 #[derive(PartialEq, Eq)]
-pub struct Integer<'a> {
+pub struct IntValue<'a> {
 	inner: Inner<'a>
 }
 
@@ -22,8 +22,8 @@ enum Inner<'a> {
 	Big(&'a [u8]), // Big-endian 2's-complement signed integer of arbitrary length, that doesn't fit into a i64 or u64.
 }
 
-impl<'a> Integer<'a> {
-	pub fn from_bigint(mut data: &'a [u8]) -> Integer<'a> {
+impl<'a> IntValue<'a> {
+	pub fn from_bigint(mut data: &'a [u8]) -> IntValue<'a> {
 		// If it is positive and fits in an u64, will make an Inner::Unsigned.
 		// If it is negative and fits in an i64, will make an Inner::Signed.
 		// Otherwise, will make an Inner::Big with the borrowed data, with
@@ -58,7 +58,7 @@ impl<'a> Integer<'a> {
 			Inner::Big(data)
 		};
 
-		Integer{ inner }
+		IntValue{ inner }
 	}
 
 	pub fn is_negative(&self) -> bool {
@@ -76,18 +76,18 @@ fn sign(v: &[u8]) -> bool {
 
 macro_rules! impl_s {
 	($t:ty) => {
-		impl<'a> From<$t> for Integer<'a> {
-			fn from(value: $t) -> Integer<'a> {
+		impl<'a> From<$t> for IntValue<'a> {
+			fn from(value: $t) -> IntValue<'a> {
 				if value < 0 {
-					Integer{ inner: Inner::Signed(value.into()) }
+					IntValue{ inner: Inner::Signed(value.into()) }
 				} else {
-					Integer{ inner: Inner::Unsigned(value as u64) }
+					IntValue{ inner: Inner::Unsigned(value as u64) }
 				}
 			}
 		}
-		impl<'a> TryFrom<Integer<'a>> for $t {
+		impl<'a> TryFrom<IntValue<'a>> for $t {
 			type Error = TryFromIntError;
-			fn try_from(value: Integer<'a>) -> Result<$t, Self::Error> {
+			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
 					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
 					Inner::Signed(v) => Ok(TryFrom::try_from(v)?),
@@ -100,14 +100,14 @@ macro_rules! impl_s {
 
 macro_rules! impl_u {
 	($t:ty) => {
-		impl<'a> From<$t> for Integer<'a> {
-			fn from(value: $t) -> Integer<'a> {
-				Integer{ inner: Inner::Unsigned(value as u64) }
+		impl<'a> From<$t> for IntValue<'a> {
+			fn from(value: $t) -> IntValue<'a> {
+				IntValue{ inner: Inner::Unsigned(value as u64) }
 			}
 		}
-		impl<'a> TryFrom<Integer<'a>> for $t {
+		impl<'a> TryFrom<IntValue<'a>> for $t {
 			type Error = TryFromIntError;
-			fn try_from(value: Integer<'a>) -> Result<$t, Self::Error> {
+			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
 					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
 					_ => TryFrom::try_from(-1), // Always fails
@@ -126,7 +126,7 @@ impl_u!(u16);
 impl_u!(u32);
 impl_u!(u64);
 
-impl<'a> Integer<'a> {
+impl<'a> IntValue<'a> {
 	pub fn serialized_length(&self) -> usize {
 		match self.inner {
 			Inner::Unsigned(0) => 0,
@@ -154,14 +154,14 @@ impl<'a> Integer<'a> {
 	}
 }
 
-impl<'a> PartialOrd<Integer<'a>> for Integer<'a> {
-	fn partial_cmp(&self, other: &Integer<'a>) -> Option<Ordering> {
+impl<'a> PartialOrd<IntValue<'a>> for IntValue<'a> {
+	fn partial_cmp(&self, other: &IntValue<'a>) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
 }
 
 // TODO: test
-impl<'a> Ord for Integer<'a> {
+impl<'a> Ord for IntValue<'a> {
 	fn cmp(&self, other: &Self) -> Ordering {
 		match (&self.inner, &other.inner) {
 			(&Inner::Unsigned(a), &Inner::Unsigned(b))             => a.cmp(&b),
@@ -183,7 +183,7 @@ fn cmp_same_sign_bigint(a: &[u8], b: &[u8]) -> Ordering {
 	o.then_with(|| a.cmp(b))
 }
 
-impl<'a> fmt::Debug for Integer<'a> {
+impl<'a> fmt::Debug for IntValue<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		match self.inner {
 			Inner::Unsigned(v) => write!(f, "{}", v),
@@ -202,33 +202,33 @@ impl<'a> fmt::Debug for Integer<'a> {
 
 #[test]
 fn test_serialize() {
-	let assert_serialize = |int: Integer, serialized: &[u8]| {
+	let assert_serialize = |int: IntValue, serialized: &[u8]| {
 		let mut v = Vec::new();
 		int.serialize(&mut v).unwrap();
 		assert_eq!(v, serialized);
 		assert_eq!(int.serialized_length(), serialized.len());
 	};
 
-	assert_serialize(Integer::from(0), &[]);
-	assert_serialize(Integer::from(1), &[0x01]);
-	assert_serialize(Integer::from(127), &[0x7F]);
-	assert_serialize(Integer::from(-1i32), &[0xFF]);
-	assert_serialize(Integer::from(0xFF), &[0x00, 0xFF]);
-	assert_serialize(Integer::from(-0x100), &[0xFF, 0x00]);
-	assert_serialize(Integer::from(1000), &[0x03, 0xE8]);
-	assert_serialize(Integer::from(-1000), &[0xFC, 0x18]);
-	assert_serialize(Integer::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(Integer::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(Integer::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(Integer::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(Integer::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
-	assert_serialize(Integer::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-	assert_serialize(Integer::from_bigint(&[0, 0]), &[]);
-	assert_serialize(Integer::from_bigint(&[0, 1]), &[1]);
-	assert_serialize(Integer::from_bigint(&[1, 1]), &[1, 1]);
-	assert_serialize(Integer::from_bigint(&[0xFF]), &[0xFF]);
-	assert_serialize(Integer::from_bigint(&[0xFF, 0xFF]), &[0xFF]);
-	assert_serialize(Integer::from_bigint(&[0x00, 0xFF]), &[0x00, 0xFF]);
+	assert_serialize(IntValue::from(0), &[]);
+	assert_serialize(IntValue::from(1), &[0x01]);
+	assert_serialize(IntValue::from(127), &[0x7F]);
+	assert_serialize(IntValue::from(-1i32), &[0xFF]);
+	assert_serialize(IntValue::from(0xFF), &[0x00, 0xFF]);
+	assert_serialize(IntValue::from(-0x100), &[0xFF, 0x00]);
+	assert_serialize(IntValue::from(1000), &[0x03, 0xE8]);
+	assert_serialize(IntValue::from(-1000), &[0xFC, 0x18]);
+	assert_serialize(IntValue::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(IntValue::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
+	assert_serialize(IntValue::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	assert_serialize(IntValue::from_bigint(&[0, 0]), &[]);
+	assert_serialize(IntValue::from_bigint(&[0, 1]), &[1]);
+	assert_serialize(IntValue::from_bigint(&[1, 1]), &[1, 1]);
+	assert_serialize(IntValue::from_bigint(&[0xFF]), &[0xFF]);
+	assert_serialize(IntValue::from_bigint(&[0xFF, 0xFF]), &[0xFF]);
+	assert_serialize(IntValue::from_bigint(&[0x00, 0xFF]), &[0x00, 0xFF]);
 }
 
 // TODO: update tests

@@ -23,7 +23,7 @@ pub mod fd;
 
 mod debug;
 mod errors;
-mod integer;
+mod intvalue;
 mod map;
 mod reference;
 mod seq;
@@ -32,7 +32,7 @@ mod subfield;
 mod timespec;
 
 pub use errors::{ReadError, NoFit, NotRead};
-pub use integer::Integer;
+pub use intvalue::IntValue;
 pub use map::{Map, MapIterator};
 pub use reference::ArgdataRef;
 pub use seq::{Seq, SeqIterator};
@@ -100,7 +100,7 @@ pub enum Value<'a, 'd: 'a> {
 	Bool(bool),
 	Fd(fd::EncodedFd<&'a fd::ConvertFd>),
 	Float(f64),
-	Int(Integer<'d>), // TODO: Rename Integer to IntValue?
+	Int(IntValue<'d>),
 	Str(StrValue<'d>),
 	Timestamp(Timespec),
 	Map(&'a Map<'d>),
@@ -215,7 +215,7 @@ pub trait Argdata<'d> {
 	///
 	/// Note: You might want to use [`read_int`](trait.ArgdataExt.html#tymethod.read_int) instead to
 	/// directly get a primitive type like `i32` or `u64`.
-	fn read_int_value(&self) -> Result<Integer<'d>, NotRead> {
+	fn read_int_value(&self) -> Result<IntValue<'d>, NotRead> {
 		match self.read()? {
 			Value::Int(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -273,7 +273,7 @@ pub trait Argdata<'d> {
 /// Extra methods for `Argdata` values.
 pub trait ArgdataExt<'d> {
 	/// Read an integer, and convert it to the requested type if it fits.
-	fn read_int<T: TryFrom<Integer<'d>>>(&self) -> Result<T, NotRead>;
+	fn read_int<T: TryFrom<IntValue<'d>>>(&self) -> Result<T, NotRead>;
 
 	/// Read a file descriptor and convert it to an `Fd`.
 	fn read_fd(&self) -> Result<fd::Fd, NotRead>;
@@ -283,7 +283,7 @@ pub trait ArgdataExt<'d> {
 }
 
 impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
-	fn read_int<T: TryFrom<Integer<'d>>>(&self) -> Result<T, NotRead> {
+	fn read_int<T: TryFrom<IntValue<'d>>>(&self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
 		)

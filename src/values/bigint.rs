@@ -1,5 +1,5 @@
 use Argdata;
-use Integer;
+use IntValue;
 use ReadError;
 use Value;
 use fd;
@@ -19,14 +19,14 @@ impl<'d> BigInt<'d> {
 	pub fn bytes(&self) -> &'d [u8] {
 		self.value
 	}
-	pub fn integer(&self) -> Integer<'d> {
-		Integer::from_bigint(self.bytes())
+	pub fn integer(&self) -> IntValue<'d> {
+		IntValue::from_bigint(self.bytes())
 	}
 }
 
 impl<'d> Argdata<'d> for BigInt<'d> {
 	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
-		Ok(Value::Int(Integer::from_bigint(self.bytes())))
+		Ok(Value::Int(IntValue::from_bigint(self.bytes())))
 	}
 
 	fn serialized_length(&self) -> usize {

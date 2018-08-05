@@ -1,6 +1,6 @@
 use Argdata;
 use ArgdataRef;
-use Integer;
+use IntValue;
 use Map;
 use NoFit;
 use NotRead;
@@ -107,9 +107,9 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_int_value(&self) -> Result<Integer<'d>, NotRead> {
+	fn read_int_value(&self) -> Result<IntValue<'d>, NotRead> {
 		match self.bytes().split_first() {
-			Some((&5, data)) => Ok(Integer::from_bigint(data)),
+			Some((&5, data)) => Ok(IntValue::from_bigint(data)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
