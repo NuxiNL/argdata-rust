@@ -35,7 +35,7 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 			&Value::Binary(val) => write!(f, "binary({:?})", val),
 			&Value::Bool(val) => write!(f, "{}", val),
 			&Value::Fd(ref fd) => write!(f, "fd({})", fd.raw_encoded_number()),
-			&Value::Float(val) => write!(f, "{}", val), // TODO: pick formatter that keeps full precision
+			&Value::Float(val) => write!(f, "{:?}", val),
 			&Value::Int(ref val) => write!(f, "{:?}", val),
 			&Value::Str(ref val) =>
 				write!(f, "{:?}", FmtError(val.as_str().map_err(|_| ReadError::InvalidUtf8))),
