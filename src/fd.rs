@@ -23,15 +23,18 @@ pub trait ConvertFd {
 }
 
 /// The identity conversion: Convert numbers to Fds with the exact same number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Identity;
 
 /// Don't provide any access to Fds. Every conversion will fail.
 ///
 /// Use this if the encoded numbers (if any) do not correspond to any real file
 /// descriptors of this process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NoConvert;
 
 /// Convert encoded fd numbers to Fds using the given function.
+#[derive(Clone, Copy)]
 pub struct ConvertFdFn<F: Fn(u32) -> Result<Fd, InvalidFd>>(pub F);
 
 impl<T: ConvertFd> EncodedFd<T> {

@@ -16,6 +16,7 @@ use std::convert::TryFrom;
 use std::io;
 use subfield::read_subfield;
 
+#[derive(Clone, Copy, Debug)]
 pub struct EncodedArgdata<'d, F> {
 	encoded: &'d [u8],
 	convert_fd: F,
