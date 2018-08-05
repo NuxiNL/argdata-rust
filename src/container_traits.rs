@@ -57,7 +57,7 @@ where
 }
 
 macro_rules! impl_container {
-	(($($a:tt)*) $t:ty) => {
+	(($($a:tt)*) => $t:ty) => {
 		impl<$($a)*> Container for $t {
 			type Item = T;
 			fn get(&self, index: usize) -> Option<&T> { self[..].get(index) }
@@ -67,43 +67,43 @@ macro_rules! impl_container {
 }
 
 // TODO: Find a way to do this for all C: Deref<Target=[T]>, but not &C.
-impl_container!((T) Vec<T>);
-impl_container!((T) Box<[T]>);
-impl_container!((T) Rc<[T]>);
-impl_container!((T) Arc<[T]>);
-impl_container!(('a, T: Clone) Cow<'a, [T]>);
+impl_container!((T) => Vec<T>);
+impl_container!((T) => Box<[T]>);
+impl_container!((T) => Rc<[T]>);
+impl_container!((T) => Arc<[T]>);
+impl_container!(('a, T: Clone) => Cow<'a, [T]>);
 
-impl_container!((T) [T]);
-impl_container!((T) [T;  0]);
-impl_container!((T) [T;  1]);
-impl_container!((T) [T;  2]);
-impl_container!((T) [T;  3]);
-impl_container!((T) [T;  4]);
-impl_container!((T) [T;  5]);
-impl_container!((T) [T;  6]);
-impl_container!((T) [T;  7]);
-impl_container!((T) [T;  8]);
-impl_container!((T) [T;  9]);
-impl_container!((T) [T; 10]);
-impl_container!((T) [T; 11]);
-impl_container!((T) [T; 12]);
-impl_container!((T) [T; 13]);
-impl_container!((T) [T; 14]);
-impl_container!((T) [T; 15]);
-impl_container!((T) [T; 16]);
-impl_container!((T) [T; 17]);
-impl_container!((T) [T; 18]);
-impl_container!((T) [T; 19]);
-impl_container!((T) [T; 20]);
-impl_container!((T) [T; 21]);
-impl_container!((T) [T; 22]);
-impl_container!((T) [T; 23]);
-impl_container!((T) [T; 24]);
-impl_container!((T) [T; 25]);
-impl_container!((T) [T; 26]);
-impl_container!((T) [T; 27]);
-impl_container!((T) [T; 28]);
-impl_container!((T) [T; 29]);
-impl_container!((T) [T; 30]);
-impl_container!((T) [T; 31]);
-impl_container!((T) [T; 32]);
+impl_container!((T) => [T]);
+impl_container!((T) => [T;  0]);
+impl_container!((T) => [T;  1]);
+impl_container!((T) => [T;  2]);
+impl_container!((T) => [T;  3]);
+impl_container!((T) => [T;  4]);
+impl_container!((T) => [T;  5]);
+impl_container!((T) => [T;  6]);
+impl_container!((T) => [T;  7]);
+impl_container!((T) => [T;  8]);
+impl_container!((T) => [T;  9]);
+impl_container!((T) => [T; 10]);
+impl_container!((T) => [T; 11]);
+impl_container!((T) => [T; 12]);
+impl_container!((T) => [T; 13]);
+impl_container!((T) => [T; 14]);
+impl_container!((T) => [T; 15]);
+impl_container!((T) => [T; 16]);
+impl_container!((T) => [T; 17]);
+impl_container!((T) => [T; 18]);
+impl_container!((T) => [T; 19]);
+impl_container!((T) => [T; 20]);
+impl_container!((T) => [T; 21]);
+impl_container!((T) => [T; 22]);
+impl_container!((T) => [T; 23]);
+impl_container!((T) => [T; 24]);
+impl_container!((T) => [T; 25]);
+impl_container!((T) => [T; 26]);
+impl_container!((T) => [T; 27]);
+impl_container!((T) => [T; 28]);
+impl_container!((T) => [T; 29]);
+impl_container!((T) => [T; 30]);
+impl_container!((T) => [T; 31]);
+impl_container!((T) => [T; 32]);
