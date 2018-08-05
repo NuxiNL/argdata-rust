@@ -1,3 +1,7 @@
+use std::error::Error;
+use std::fmt::Display;
+use std;
+
 /// An error while reading argdata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadError {
@@ -32,6 +36,34 @@ pub enum ReadError {
 	/// The data represents a file descriptor that doesn't exist.
 	/// (Possibly because there were no file descriptors 'attached' to the argdata value at all.)
 	InvalidFdNumber(u32),
+}
+
+impl Error for ReadError {
+	fn description(&self) -> &str {
+		match self {
+			ReadError::InvalidTag(_)         => "Invalid argdata tag",
+			ReadError::MissingNullTerminator => "Argdata contains a string without nul terminator",
+			ReadError::InvalidUtf8           => "Argdata contains invalid UTF-8",
+			ReadError::InvalidBoolValue      => "Argdata contains an invalid boolean value",
+			ReadError::InvalidFloatLength    => "Argdata contains floating point data of invalid length",
+			ReadError::InvalidFdLength       => "Argdata contains file descriptor data of invalid length",
+			ReadError::TimestampOutOfRange   => "Argdata contains a timestamp which is out of the accepted range",
+			ReadError::InvalidSubfield       => "Argdata has an incomplete subfield",
+			ReadError::InvalidKeyValuePair   => "Argdata map has an incomplete key-value pair",
+			ReadError::InvalidFdNumber(_)    => "Argdata contains a file descriptor that doesn't exist",
+		}
+	}
+}
+
+impl Display for ReadError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "{}", self.description())?;
+		match self {
+			ReadError::InvalidTag(x)      => write!(f, " (0x{:02X})", x),
+			ReadError::InvalidFdNumber(x) => write!(f, " ({})", *x as i32),
+			_ => Ok(())
+		}
+	}
 }
 
 /// The reason why an `Argdata::read_*()` call didn't return a value, when there was no read error.
