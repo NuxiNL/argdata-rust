@@ -5,6 +5,7 @@ use Value;
 use fd;
 use std::io;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Int<T> {
 	value: T
 }

@@ -4,6 +4,7 @@ use Value;
 use fd;
 use std::io;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Null;
 
 impl<'d> Argdata<'d> for Null {

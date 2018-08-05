@@ -6,6 +6,7 @@ use byteorder::{ByteOrder, BigEndian};
 use fd;
 use std::io;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Timestamp {
 	value: Timespec
 }

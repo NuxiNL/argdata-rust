@@ -7,6 +7,7 @@ use fd;
 use std::io;
 use subfield::{subfield_length, write_subfield_length};
 
+#[derive(Clone, Copy, Debug)]
 pub struct Map<'d, T: 'd> {
 	items: &'d T,
 	length: usize,

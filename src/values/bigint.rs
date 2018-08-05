@@ -6,6 +6,7 @@ use fd;
 use std::io;
 
 /// A big-endian 2's-complement signed arbitrary length integer.
+#[derive(Clone, Copy, Debug)]
 pub struct BigInt<'d> {
 	value: &'d [u8]
 }
@@ -19,7 +20,7 @@ impl<'d> BigInt<'d> {
 	pub fn bytes(&self) -> &'d [u8] {
 		self.value
 	}
-	pub fn integer(&self) -> IntValue<'d> {
+	pub fn int_value(&self) -> IntValue<'d> {
 		IntValue::from_bigint(self.bytes())
 	}
 }

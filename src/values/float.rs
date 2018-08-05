@@ -5,6 +5,7 @@ use byteorder::{ByteOrder, BigEndian};
 use fd;
 use std::io;
 
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Float{
 	value: f64
 }
