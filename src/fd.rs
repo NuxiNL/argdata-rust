@@ -5,6 +5,7 @@ use std::os::raw::c_int;
 pub struct Fd(pub c_int);
 
 /// A file descriptor in some argdata.
+#[derive(Clone, Copy)]
 pub struct EncodedFd<T> {
 	pub(crate) raw: u32,
 	pub(crate) convert_fd: T,

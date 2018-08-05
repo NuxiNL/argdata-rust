@@ -6,10 +6,12 @@ use std;
 ///
 /// The string might or might not be zero terminated, and might or might not be
 /// valid UTF-8. The accessor functions will check these properties if needed.
+#[derive(Clone, Copy)]
 pub struct StrValue<'d> {
 	inner: Inner<'d>
 }
 
+#[derive(Clone, Copy)]
 enum Inner<'d> {
 	BytesWithoutNul(&'d [u8]),
 	BytesWithNul(&'d [u8]),

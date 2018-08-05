@@ -10,12 +10,12 @@ use std::num::TryFromIntError;
 /// An integer that fits in a `u64` or `i64` is directly stored in the object.
 /// Anything bigger is stored somewhere else (with lifetime `'a`) as a 2's complement big-endian
 /// integer in the form of an `[u8]`.
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct IntValue<'a> {
 	inner: Inner<'a>
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Inner<'a> {
 	Unsigned(u64),
 	Signed(i64), // For negative numbers only.

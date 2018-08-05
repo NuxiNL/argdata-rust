@@ -21,6 +21,7 @@ pub enum Type {
 }
 
 /// A (borrowed) argdata value.
+#[derive(Copy, Clone)]
 pub enum Value<'a, 'd: 'a> {
 	Null,
 	Binary(&'d [u8]),
