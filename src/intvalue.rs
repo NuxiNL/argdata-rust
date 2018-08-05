@@ -102,7 +102,7 @@ macro_rules! impl_u {
 	($t:ty) => {
 		impl<'a> From<$t> for IntValue<'a> {
 			fn from(value: $t) -> IntValue<'a> {
-				IntValue{ inner: Inner::Unsigned(value as u64) }
+				IntValue{ inner: Inner::Unsigned(u64::from(value)) }
 			}
 		}
 		impl<'a> TryFrom<IntValue<'a>> for $t {
