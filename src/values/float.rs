@@ -36,10 +36,9 @@ impl<'d> Argdata<'d> for Float {
 	}
 
 	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
-		let mut buf = [0u8; 8];
-		BigEndian::write_f64(&mut buf, self.value);
-		writer.write_all(&[5])?;
-		writer.write_all(&buf)?;
-		Ok(())
+		let mut buf = [0; 9];
+		buf[0] = 5;
+		BigEndian::write_f64(&mut buf[1..], self.value);
+		writer.write_all(&buf)
 	}
 }
