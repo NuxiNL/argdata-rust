@@ -36,3 +36,12 @@ impl<'d> Argdata<'d> for Str<'d> {
 		Ok(())
 	}
 }
+
+#[test]
+fn str_serialize_test() {
+	let s = str("blah");
+	assert_eq!(s.serialized_length(), 6);
+	let mut buf = Vec::new();
+	s.serialize(&mut buf, None).unwrap();
+	assert_eq!(&buf, b"\x08blah\x00");
+}
