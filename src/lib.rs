@@ -257,9 +257,7 @@ where
 	A: Argdata<'d> + ?Sized,
 {
 	fn read_int<T: TryFrom<IntValue<'d>>>(&self) -> Result<T, NotRead> {
-		self.read_int_value().and_then(|v|
-			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())
-		)
+		TryFrom::try_from(self.read_int_value()?).map_err(|_| NoFit::OutOfRange.into())
 	}
 
 	fn read_fd(&self) -> Result<fd::Fd, NotRead> {
