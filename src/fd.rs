@@ -49,8 +49,12 @@ impl<T: ConvertFd> EncodedFd<T> {
 	}
 
 	/// Converts this to a valid file descriptor, if possible.
-	pub fn fd(&self) -> Result<Fd, InvalidFd> {
-		self.convert_fd.convert_fd(self.raw)
+	///
+	/// On failure, the raw encoded number is returned as an error.
+	pub fn to_fd(&self) -> Result<Fd, u32> {
+		self.convert_fd
+			.convert_fd(self.raw)
+			.map_err(|InvalidFd| self.raw)
 	}
 }
 

@@ -263,9 +263,9 @@ where
 	}
 
 	fn read_fd(&self) -> Result<fd::Fd, NotRead> {
-		self.read_encoded_fd().and_then(|fd|
-			fd.fd().map_err(|_| ReadError::InvalidFdNumber(fd.raw_encoded_number()).into())
-		)
+		self.read_encoded_fd()?
+			.to_fd()
+			.map_err(|raw| ReadError::InvalidFdNumber(raw).into())
 	}
 
 	fn read_str(&self) -> Result<&'d str, NotRead> {
