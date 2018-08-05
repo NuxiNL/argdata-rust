@@ -44,7 +44,7 @@ impl<'d> Argdata<'d> for Timestamp{
 
 impl Timestamp {
 	fn nanoseconds(&self) -> i128 {
-		self.value.sec as i128 + self.value.nsec as i128 * 1_000_000_000
+		self.value.sec as i128 * 1_000_000_000 + self.value.nsec as i128
 	}
 }
 
