@@ -97,18 +97,18 @@ pub trait Argdata<'d> {
 	/// Read the value.
 	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
 		let t = self.get_type()?;
-		let result = (|| match t {
+		let result = match t {
 			Type::Null      => Ok(Value::Null),
-			Type::Binary    => Ok(Value::Binary(self.read_binary()?)),
-			Type::Bool      => Ok(Value::Bool(self.read_bool()?)),
-			Type::Fd        => Ok(Value::Fd(self.read_encoded_fd()?)),
-			Type::Float     => Ok(Value::Float(self.read_float()?)),
-			Type::Int       => Ok(Value::Int(self.read_int_value()?)),
-			Type::Str       => Ok(Value::Str(self.read_str_value()?)),
-			Type::Timestamp => Ok(Value::Timestamp(self.read_timestamp()?)),
-			Type::Map       => Ok(Value::Map(self.read_map()?)),
-			Type::Seq       => Ok(Value::Seq(self.read_seq()?)),
-		})();
+			Type::Binary    => self.read_binary()    .map(Value::Binary),
+			Type::Bool      => self.read_bool()      .map(Value::Bool),
+			Type::Fd        => self.read_encoded_fd().map(Value::Fd),
+			Type::Float     => self.read_float()     .map(Value::Float),
+			Type::Int       => self.read_int_value() .map(Value::Int),
+			Type::Str       => self.read_str_value() .map(Value::Str),
+			Type::Timestamp => self.read_timestamp() .map(Value::Timestamp),
+			Type::Map       => self.read_map()       .map(Value::Map),
+			Type::Seq       => self.read_seq()       .map(Value::Seq),
+		};
 		match result {
 			Ok(v) => Ok(v),
 			Err(NotRead::Error(e)) => Err(e),
