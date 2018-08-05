@@ -33,11 +33,11 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 		match self {
 			Value::Null => write!(f, "null"),
 			Value::Binary(val) => write!(f, "binary({:?})", val),
-			Value::Bool(val) => write!(f, "{}", val),
+			Value::Bool(val) => val.fmt(f),
 			Value::Fd(fd) => write!(f, "fd({})", fd.raw_encoded_number()),
-			Value::Float(val) => write!(f, "{:?}", val),
-			Value::Int(val) => write!(f, "{:?}", val),
-			Value::Str(val) => write!(f, "{:?}", FmtError(val.as_str().map_err(|_| ReadError::InvalidUtf8))),
+			Value::Float(val) => fmt::Debug::fmt(val, f),
+			Value::Int(val) => fmt::Debug::fmt(val, f),
+			Value::Str(val) => fmt::Debug::fmt(&FmtError(val.as_str().map_err(Into::into)), f),
 			Value::Timestamp(val) => write!(f, "timestamp({}, {})", val.sec, val.nsec),
 			Value::Map(val) => {
 				let it = val.iter_map().map(|x| match x {
