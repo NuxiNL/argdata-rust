@@ -21,7 +21,8 @@ pub trait MapContainer {
 	fn len(&self) -> usize;
 }
 
-impl<K, V> MapContainer for (K, V) where
+impl<K, V> MapContainer for (K, V)
+where
 	K: Container,
 	V: Container,
 {
@@ -29,7 +30,9 @@ impl<K, V> MapContainer for (K, V) where
 	type Value = <V as Container>::Item;
 
 	fn get(&self, index: usize) -> Option<(&Self::Key, &Self::Value)> {
-		self.0.get(index).and_then(|k| self.1.get(index).map(|v| (k, v)))
+		self.0
+			.get(index)
+			.and_then(|k| self.1.get(index).map(|v| (k, v)))
 	}
 
 	fn len(&self) -> usize {
@@ -37,8 +40,9 @@ impl<K, V> MapContainer for (K, V) where
 	}
 }
 
-impl<T, K, V> MapContainer for T where
-	T: Container<Item=(K, V)>,
+impl<T, K, V> MapContainer for T
+where
+	T: Container<Item = (K, V)>,
 {
 	type Key = K;
 	type Value = V;

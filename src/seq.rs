@@ -12,16 +12,20 @@ pub trait Seq<'d> {
 	/// for example be the index into a vector, or the byte-offset into an encoded argdata value.
 	///
 	/// Might panic if you give it an invalid `cookie`.
-	fn iter_seq_next<'a>(&'a self, cookie: &mut usize) ->
-		Option<Result<ArgdataRef<'a, 'd>, ReadError>> where 'd: 'a;
+	fn iter_seq_next<'a>(
+		&'a self,
+		cookie: &mut usize,
+	) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>>
+	where
+		'd: 'a;
 }
 
 impl<'a, 'd: 'a> Seq<'d> + 'a {
 	/// Get an iterator to the elements of the sequence.
 	pub fn iter_seq(&'a self) -> SeqIterator<'a, 'd> {
-		SeqIterator{
+		SeqIterator {
 			seq: self,
-			cookie: 0
+			cookie: 0,
 		}
 	}
 }

@@ -13,16 +13,20 @@ pub trait Map<'d> {
 	/// value.
 	///
 	/// Might panic if you give it an invalid `cookie`.
-	fn iter_map_next<'a>(&'a self, cookie: &mut usize) ->
-		Option<Result<(ArgdataRef<'a, 'd>, ArgdataRef<'a, 'd>), ReadError>> where 'd: 'a;
+	fn iter_map_next<'a>(
+		&'a self,
+		cookie: &mut usize,
+	) -> Option<Result<(ArgdataRef<'a, 'd>, ArgdataRef<'a, 'd>), ReadError>>
+	where
+		'd: 'a;
 }
 
 impl<'a, 'd: 'a> Map<'d> + 'a {
 	/// Get an iterator to the key-value pairs of the map.
 	pub fn iter_map(&'a self) -> MapIterator<'a, 'd> {
-		MapIterator{
+		MapIterator {
 			map: self,
-			cookie: 0
+			cookie: 0,
 		}
 	}
 }

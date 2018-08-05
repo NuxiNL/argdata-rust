@@ -1,24 +1,27 @@
-use Argdata;
 use fd;
 use std::ops::Deref;
 use values;
+use Argdata;
 
 /// A reference to an argdata value.
 /// Either a substring of an encoded argdata value, or just a `&Argdata`.
 pub struct ArgdataRef<'a, 'd: 'a> {
-	inner: Inner<'a, 'd>
+	inner: Inner<'a, 'd>,
 }
 
 impl<'a, 'd: 'a> ArgdataRef<'a, 'd> {
-
 	/// Create an ArgdataRef that refers to a substring of an encoded argdata value.
 	pub fn encoded(bytes: &'d [u8], convert_fd: &'a (fd::ConvertFd + 'a)) -> ArgdataRef<'a, 'd> {
-		ArgdataRef{ inner: Inner::Encoded(::encoded_with_fds(bytes, convert_fd)) }
+		ArgdataRef {
+			inner: Inner::Encoded(::encoded_with_fds(bytes, convert_fd)),
+		}
 	}
 
 	/// Create an ArgdataRef that simply refers to something that implements Argdata.
 	pub fn reference(value: &'a (Argdata<'d> + 'a)) -> ArgdataRef<'a, 'd> {
-		ArgdataRef{ inner: Inner::Reference(value) }
+		ArgdataRef {
+			inner: Inner::Reference(value),
+		}
 	}
 }
 

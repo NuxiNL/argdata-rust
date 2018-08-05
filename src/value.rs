@@ -1,9 +1,9 @@
+use fd;
 use IntValue;
 use Map;
 use Seq;
 use StrValue;
 use Timespec;
-use fd;
 
 /// The type of an argdata value.
 #[derive(Debug, PartialEq, Eq, Hash)]

@@ -1,19 +1,19 @@
+use fd;
+use std::io;
 use Argdata;
 use IntValue;
 use ReadError;
 use Value;
-use fd;
-use std::io;
 
 /// A big-endian 2's-complement signed arbitrary length integer.
 #[derive(Clone, Copy, Debug)]
 pub struct BigInt<'d> {
-	value: &'d [u8]
+	value: &'d [u8],
 }
 
 /// Create an argdata value representing an arbitrary length 2's complement integer.
 pub fn bigint<'d>(value: &'d [u8]) -> BigInt<'d> {
-	BigInt{ value }
+	BigInt { value }
 }
 
 impl<'d> BigInt<'d> {
@@ -26,7 +26,10 @@ impl<'d> BigInt<'d> {
 }
 
 impl<'d> Argdata<'d> for BigInt<'d> {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Int(IntValue::from_bigint(self.bytes())))
 	}
 

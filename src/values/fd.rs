@@ -1,10 +1,10 @@
-use Argdata;
-use ReadError;
-use Value;
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{BigEndian, ByteOrder};
 use fd;
 use std::io;
 use std::os::raw::c_int;
+use Argdata;
+use ReadError;
+use Value;
 
 /// Create an argdata value representing a file descriptor of this process.
 pub fn process_fd(fd: c_int) -> fd::Fd {
@@ -22,7 +22,10 @@ pub fn invalid_fd() -> fd::InvalidFd {
 }
 
 impl<'d> Argdata<'d> for fd::Fd {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Fd(encoded_fd(self.0 as u32, &fd::Identity)))
 	}
 
@@ -30,13 +33,20 @@ impl<'d> Argdata<'d> for fd::Fd {
 		5
 	}
 
-	fn serialize(&self, writer: &mut io::Write, fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(
+		&self,
+		writer: &mut io::Write,
+		fd_map: Option<&mut fd::FdMapping>,
+	) -> io::Result<()> {
 		encoded_fd(self.0 as u32, fd::Identity).serialize(writer, fd_map)
 	}
 }
 
 impl<'d, T: fd::ConvertFd> Argdata<'d> for fd::EncodedFd<T> {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Fd(encoded_fd(self.raw, &self.convert_fd)))
 	}
 
@@ -44,9 +54,16 @@ impl<'d, T: fd::ConvertFd> Argdata<'d> for fd::EncodedFd<T> {
 		5
 	}
 
-	fn serialize(&self, writer: &mut io::Write, fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(
+		&self,
+		writer: &mut io::Write,
+		fd_map: Option<&mut fd::FdMapping>,
+	) -> io::Result<()> {
 		let raw: u32 = if let Some(fd_map) = fd_map {
-			self.convert_fd.convert_fd(self.raw).ok().map_or(!0, |fd| fd_map.map(fd))
+			self.convert_fd
+				.convert_fd(self.raw)
+				.ok()
+				.map_or(!0, |fd| fd_map.map(fd))
 		} else {
 			self.raw
 		};
@@ -57,7 +74,10 @@ impl<'d, T: fd::ConvertFd> Argdata<'d> for fd::EncodedFd<T> {
 }
 
 impl<'d> Argdata<'d> for fd::InvalidFd {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Fd(encoded_fd(!0, &fd::NoConvert)))
 	}
 

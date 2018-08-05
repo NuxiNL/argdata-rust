@@ -31,16 +31,16 @@ mod subfield;
 mod timespec;
 mod value;
 
-pub use errors::{ReadError, NoFit, NotRead};
+pub use errors::{NoFit, NotRead, ReadError};
 pub use intvalue::IntValue;
 pub use map::{Map, MapIterator};
 pub use reference::ArgdataRef;
 pub use seq::{Seq, SeqIterator};
 pub use strvalue::StrValue;
 pub use timespec::Timespec;
-pub use value::{Value, Type};
+pub use value::{Type, Value};
 
-#[path="values/mod.rs"]
+#[path = "values/mod.rs"]
 mod values_;
 
 pub use values_::{
@@ -93,9 +93,11 @@ pub mod values {
 /// returned by `get_type()` may *not* return an `Err(NotRead::NoFit)`. Otherwise, `read()` will
 /// panic.
 pub trait Argdata<'d> {
-
 	/// Read the value.
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		let t = self.get_type()?;
 		let result = match t {
 			Type::Null      => Ok(Value::Null),
@@ -151,7 +153,10 @@ pub trait Argdata<'d> {
 	/// to an `Fd` might still fail.
 	///
 	/// Note: You probably want to use [`read_fd`](trait.ArgdataExt.html#tymethod.read_fd) instead.
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead> where 'd: 'a {
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead>
+	where
+		'd: 'a,
+	{
 		match self.read()? {
 			Value::Fd(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -178,7 +183,10 @@ pub trait Argdata<'d> {
 	}
 
 	/// Check if the value is a map, and get access to it if it is.
-	fn read_map<'a>(&'a self) -> Result<&'a Map<'d>, NotRead> where 'd: 'a {
+	fn read_map<'a>(&'a self) -> Result<&'a Map<'d>, NotRead>
+	where
+		'd: 'a,
+	{
 		match self.read()? {
 			Value::Map(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -186,7 +194,10 @@ pub trait Argdata<'d> {
 	}
 
 	/// Check if the value is a seq, and get access to it if it is.
-	fn read_seq<'a>(&'a self) -> Result<&'a Seq<'d>, NotRead> where 'd: 'a {
+	fn read_seq<'a>(&'a self) -> Result<&'a Seq<'d>, NotRead>
+	where
+		'd: 'a,
+	{
 		match self.read()? {
 			Value::Seq(v) => Ok(v),
 			_ => Err(NoFit::DifferentType.into()),
@@ -219,7 +230,11 @@ pub trait Argdata<'d> {
 	/// File descriptors are mapped using `fd_map`.
 	/// If it is None, encoded file descriptors will be kept as is, and actual
 	/// file descriptors will be encoded as `-1` (invalid).
-	fn serialize(&self, writer: &mut io::Write, fd_map: Option<&mut fd::FdMapping>) -> io::Result<()>;
+	fn serialize(
+		&self,
+		writer: &mut io::Write,
+		fd_map: Option<&mut fd::FdMapping>,
+	) -> io::Result<()>;
 
 	/// The number of bytes that `self.serialize()` will write.
 	fn serialized_length(&self) -> usize;
@@ -237,7 +252,10 @@ pub trait ArgdataExt<'d> {
 	fn read_str(&self) -> Result<&'d str, NotRead>;
 }
 
-impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
+impl<'d, A> ArgdataExt<'d> for A
+where
+	A: Argdata<'d> + ?Sized,
+{
 	fn read_int<T: TryFrom<IntValue<'d>>>(&self) -> Result<T, NotRead> {
 		self.read_int_value().and_then(|v|
 			TryFrom::try_from(v).map_err(|_| NoFit::OutOfRange.into())

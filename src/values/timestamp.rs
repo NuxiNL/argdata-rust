@@ -1,29 +1,32 @@
+use byteorder::{BigEndian, ByteOrder};
+use fd;
+use std::io;
 use Argdata;
 use ReadError;
 use Timespec;
 use Value;
-use byteorder::{ByteOrder, BigEndian};
-use fd;
-use std::io;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Timestamp {
-	value: Timespec
+	value: Timespec,
 }
 
 /// Create an argdata value representing a point in time.
 pub fn timestamp(value: Timespec) -> Timestamp {
-	Timestamp{ value }
+	Timestamp { value }
 }
 
-impl Timestamp{
+impl Timestamp {
 	pub fn value(&self) -> Timespec {
 		self.value
 	}
 }
 
-impl<'d> Argdata<'d> for Timestamp{
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+impl<'d> Argdata<'d> for Timestamp {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Timestamp(self.value))
 	}
 

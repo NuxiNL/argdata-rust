@@ -1,17 +1,17 @@
+use fd;
+use std::io;
 use Argdata;
 use ReadError;
 use Value;
-use fd;
-use std::io;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Binary<'d> {
-	value: &'d [u8]
+	value: &'d [u8],
 }
 
 /// Create an argdata value representing a binary blob.
 pub fn binary<'d>(value: &'d [u8]) -> Binary<'d> {
-	Binary{ value }
+	Binary { value }
 }
 
 impl<'d> Binary<'d> {
@@ -21,7 +21,10 @@ impl<'d> Binary<'d> {
 }
 
 impl<'d> Argdata<'d> for Binary<'d> {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Binary(self.bytes()))
 	}
 

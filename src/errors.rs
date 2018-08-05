@@ -1,12 +1,11 @@
+use std;
 use std::error::Error;
 use std::fmt::Display;
 use std::str::Utf8Error;
-use std;
 
 /// An error while reading argdata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadError {
-
 	/// The data contained the given tag, which doesn't correspond to any known type.
 	InvalidTag(u8),
 
@@ -70,7 +69,6 @@ impl Display for ReadError {
 /// The reason why an `Argdata::read_*()` call didn't return a value, when there was no read error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NoFit {
-
 	/// The value is too high or low to fit in the requested type.
 	OutOfRange,
 
@@ -81,7 +79,6 @@ pub enum NoFit {
 /// The reason why an `Argdata::read_*()` call didn't return a value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotRead {
-
 	/// The value couldn't be read, because it wouldn't fit in the requested type.
 	/// (Because it the value is of a different type, or isn't big enough.)
 	NoFit(NoFit),

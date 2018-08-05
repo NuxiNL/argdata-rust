@@ -4,7 +4,7 @@ use ReadError;
 
 pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
 	if data.is_empty() {
-		return (None, 0)
+		return (None, 0);
 	}
 
 	// Decode field size
@@ -20,7 +20,9 @@ pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
 			return (Some(Err(ReadError::InvalidSubfield)), data.len());
 		}
 		len = len << 7 | (byte & 0x7F) as usize;
-		if byte >= 0x80 { break; }
+		if byte >= 0x80 {
+			break;
+		}
 	}
 
 	// Get len bytes after the encoded length.
@@ -46,7 +48,11 @@ pub fn write_subfield_length(length: usize, writer: &mut io::Write) -> io::Resul
 	while n != 0 {
 		n -= 1;
 		let mut byte = (length >> 7 * n) as u8;
-		if n == 0 { byte |= 0x80; } else { byte &= 0x7F; }
+		if n == 0 {
+			byte |= 0x80;
+		} else {
+			byte &= 0x7F;
+		}
 		writer.write_all(&[byte])?;
 	}
 	Ok(())

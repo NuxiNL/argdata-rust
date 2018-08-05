@@ -1,11 +1,11 @@
-use Argdata;
-use ArgdataRef;
-use ReadError;
-use Value;
 use container_traits::Container;
 use fd;
 use std::io;
 use subfield::{subfield_length, write_subfield_length};
+use Argdata;
+use ArgdataRef;
+use ReadError;
+use Value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Seq<'d, T: 'd> {
@@ -26,32 +26,38 @@ pub struct Seq<'d, T: 'd> {
 ///  - `seq(&[])`
 ///  - `seq(Rc::new([int(1), int(2)])`
 ///
-pub fn seq<'d, T>(items: &'d T) -> Seq<'d, T> where
+pub fn seq<'d, T>(items: &'d T) -> Seq<'d, T>
+where
 	T: Container,
-	<T as Container>::Item: Argdata<'d>
+	<T as Container>::Item: Argdata<'d>,
 {
 	let mut length = 1;
 	for i in 0..items.len() {
 		let a = items.get(i).unwrap();
 		length += subfield_length(a.serialized_length());
 	}
-	Seq{ items, length }
+	Seq { items, length }
 }
 
-impl<'d, T> Seq<'d, T> where
+impl<'d, T> Seq<'d, T>
+where
 	T: Container,
-	<T as Container>::Item: Argdata<'d>
+	<T as Container>::Item: Argdata<'d>,
 {
 	pub fn elements(&self) -> &'d T {
 		&self.items
 	}
 }
 
-impl<'d, T> Argdata<'d> for Seq<'d, T> where
+impl<'d, T> Argdata<'d> for Seq<'d, T>
+where
 	T: Container,
-	<T as Container>::Item: Argdata<'d>
+	<T as Container>::Item: Argdata<'d>,
 {
-	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError> where 'd: 'a {
+	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
+	where
+		'd: 'a,
+	{
 		Ok(Value::Seq(self))
 	}
 
@@ -59,7 +65,11 @@ impl<'d, T> Argdata<'d> for Seq<'d, T> where
 		self.length
 	}
 
-	fn serialize(&self, writer: &mut io::Write, mut fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(
+		&self,
+		writer: &mut io::Write,
+		mut fd_map: Option<&mut fd::FdMapping>,
+	) -> io::Result<()> {
 		writer.write_all(&[7])?;
 		for i in 0..self.items.len() {
 			let a = self.items.get(i).unwrap();
@@ -70,12 +80,17 @@ impl<'d, T> Argdata<'d> for Seq<'d, T> where
 	}
 }
 
-impl<'d, T> ::Seq<'d> for Seq<'d, T> where
+impl<'d, T> ::Seq<'d> for Seq<'d, T>
+where
 	T: Container,
-	<T as Container>::Item: Argdata<'d>
+	<T as Container>::Item: Argdata<'d>,
 {
-	fn iter_seq_next<'a>(&'a self, cookie: &mut usize) ->
-		Option<Result<ArgdataRef<'a, 'd>, ReadError>> where 'd: 'a
+	fn iter_seq_next<'a>(
+		&'a self,
+		cookie: &mut usize,
+	) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>>
+	where
+		'd: 'a,
 	{
 		self.items.get(*cookie).map(|a| {
 			*cookie += 1;
