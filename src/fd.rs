@@ -40,7 +40,7 @@ pub struct ConvertFdFn<F: Fn(u32) -> Result<Fd, InvalidFd>>(pub F);
 impl<T: ConvertFd> EncodedFd<T> {
 	/// Create an EncodedFd that will convert `raw` to an `Fd` using `convert_fd`.
 	pub fn new(raw: u32, convert_fd: T) -> EncodedFd<T> {
-		EncodedFd{ raw, convert_fd }
+		EncodedFd { raw, convert_fd }
 	}
 
 	/// The 32-bit file descriptor number exactly as encoded in the raw argdata.
@@ -55,18 +55,30 @@ impl<T: ConvertFd> EncodedFd<T> {
 }
 
 impl ConvertFd for Identity {
-	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> { Ok(Fd(fd as c_int)) }
+	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> {
+		Ok(Fd(fd as c_int))
+	}
 }
 
 impl ConvertFd for NoConvert {
-	fn convert_fd(&self, _: u32) -> Result<Fd, InvalidFd> { Err(InvalidFd) }
+	fn convert_fd(&self, _: u32) -> Result<Fd, InvalidFd> {
+		Err(InvalidFd)
+	}
 }
 
-impl<F> ConvertFd for ConvertFdFn<F> where F: Fn(u32) -> Result<Fd, InvalidFd> {
-	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> { self.0(fd) }
+impl<F> ConvertFd for ConvertFdFn<F>
+where
+	F: Fn(u32) -> Result<Fd, InvalidFd>,
+{
+	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> {
+		self.0(fd)
+	}
 }
 
-impl<'a, T> ConvertFd for &'a T where T: ConvertFd + 'a + ?Sized {
+impl<'a, T> ConvertFd for &'a T
+where
+	T: ConvertFd + 'a + ?Sized,
+{
 	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> {
 		(*self).convert_fd(fd)
 	}

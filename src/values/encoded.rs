@@ -1,3 +1,9 @@
+use byteorder::{BigEndian, ByteOrder};
+use fd;
+use fd::EncodedFd;
+use std::convert::TryFrom;
+use std::io;
+use subfield::read_subfield;
 use Argdata;
 use ArgdataRef;
 use IntValue;
@@ -9,12 +15,6 @@ use Seq;
 use StrValue;
 use Timespec;
 use Type;
-use byteorder::{ByteOrder, BigEndian};
-use fd::EncodedFd;
-use fd;
-use std::convert::TryFrom;
-use std::io;
-use subfield::read_subfield;
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodedArgdata<'d, F> {
@@ -32,7 +32,10 @@ impl<'d, F: fd::ConvertFd> EncodedArgdata<'d, F> {
 ///
 /// The data is not converted. It will be decoded on demand.
 pub fn encoded<'d>(encoded: &'d [u8]) -> EncodedArgdata<'d, fd::NoConvert> {
-	EncodedArgdata{ encoded, convert_fd: fd::NoConvert }
+	EncodedArgdata {
+		encoded,
+		convert_fd: fd::NoConvert,
+	}
 }
 
 /// Create an argdata value directly from an encoded argdata buffer, which has
@@ -41,14 +44,17 @@ pub fn encoded<'d>(encoded: &'d [u8]) -> EncodedArgdata<'d, fd::NoConvert> {
 /// Reading file descriptors will use the provided `convert_fd` object.
 ///
 /// The data is not converted. It will be decoded on demand.
-pub fn encoded_with_fds<'d, F: fd::ConvertFd>
-	(encoded: &'d [u8], convert_fd: F) -> EncodedArgdata<'d, F>
-{
-	EncodedArgdata{ encoded, convert_fd }
+pub fn encoded_with_fds<'d, F: fd::ConvertFd>(
+	encoded: &'d [u8],
+	convert_fd: F,
+) -> EncodedArgdata<'d, F> {
+	EncodedArgdata {
+		encoded,
+		convert_fd,
+	}
 }
 
 impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
-
 	fn get_type(&self) -> Result<Type, ReadError> {
 		match self.bytes().first() {
 			None => Ok(Type::Null),
@@ -81,18 +87,21 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_bool(&self) -> Result<bool, NotRead> {
 		match self.bytes().split_first() {
-			Some((2, []))  => Ok(false),
+			Some((2, [])) => Ok(false),
 			Some((2, [1])) => Ok(true),
 			Some((2, _)) => Err(NotRead::Error(ReadError::InvalidBoolValue)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead> where 'd: 'a {
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead>
+	where
+		'd: 'a,
+	{
 		match self.bytes().split_first() {
-			Some((3, data)) if data.len() == 4 => Ok(EncodedFd{
+			Some((3, data)) if data.len() == 4 => Ok(EncodedFd {
 				raw: BigEndian::read_u32(data),
-				convert_fd: &self.convert_fd
+				convert_fd: &self.convert_fd,
 			}),
 			Some((3, _)) => Err(NotRead::Error(ReadError::InvalidFdLength)),
 			_ => Err(NoFit::DifferentType.into()),
@@ -101,8 +110,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.bytes().split_first() {
-			Some((4, data)) if data.len() == 8 =>
-				Ok(f64::from_bits(BigEndian::read_u64(data))),
+			Some((4, data)) if data.len() == 8 => Ok(f64::from_bits(BigEndian::read_u64(data))),
 			Some((4, _)) => Err(NotRead::Error(ReadError::InvalidFloatLength)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
@@ -115,14 +123,20 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead> where 'd: 'a {
+	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead>
+	where
+		'd: 'a,
+	{
 		match self.bytes().first() {
 			Some(6) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead> where 'd: 'a {
+	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead>
+	where
+		'd: 'a,
+	{
 		match self.bytes().first() {
 			Some(7) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
@@ -131,10 +145,8 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_str_value(&self) -> Result<StrValue<'d>, NotRead> {
 		match self.bytes().split_first() {
-			Some((8, data)) if data.last() == Some(&0) =>
-				Ok(StrValue::from_bytes_with_nul(data)),
-			Some((8, _)) =>
-				Err(ReadError::MissingNullTerminator.into()),
+			Some((8, data)) if data.last() == Some(&0) => Ok(StrValue::from_bytes_with_nul(data)),
+			Some((8, _)) => Err(ReadError::MissingNullTerminator.into()),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
@@ -142,7 +154,6 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.bytes().split_first() {
 			Some((9, data)) => {
-
 				// 12 bytes is enough for 2**64 seconds in nanoseconds.
 				if data.len() > 12 {
 					return Err(ReadError::TimestampOutOfRange.into());
@@ -160,12 +171,11 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 				}
 
 				// Convert to i64 and i32, if it fits.
-				let sec: i64 = TryFrom::try_from(sec).map_err(|_|
-					NotRead::Error(ReadError::TimestampOutOfRange)
-				)?;
+				let sec: i64 = TryFrom::try_from(sec)
+					.map_err(|_| NotRead::Error(ReadError::TimestampOutOfRange))?;
 				let nsec = nsec as u32;
 
-				Ok(Timespec{sec, nsec})
+				Ok(Timespec { sec, nsec })
 			}
 			_ => Err(NoFit::DifferentType.into()),
 		}
@@ -175,23 +185,27 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		self.bytes().len()
 	}
 
-	fn serialize(&self, writer: &mut io::Write, fd_map: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(
+		&self,
+		writer: &mut io::Write,
+		fd_map: Option<&mut fd::FdMapping>,
+	) -> io::Result<()> {
 		if let Some(fd_map) = fd_map {
 			match self.get_type() {
 				Ok(Type::Map) | Ok(Type::Seq) => {
 					let mut last_write_offset = 0;
 					let mut offset = 0;
 					while let Some(Ok(a)) = self.iter_subfield_next(&mut offset) {
-						writer.write_all(&self.bytes()[last_write_offset..offset+1])?;
+						writer.write_all(&self.bytes()[last_write_offset..offset + 1])?;
 						last_write_offset = offset + 1;
 						a.serialize(writer, Some(fd_map))?;
 					}
 					Ok(())
-				},
+				}
 				Ok(Type::Fd) => {
-					let efd = self.read_encoded_fd().unwrap_or(EncodedFd{
+					let efd = self.read_encoded_fd().unwrap_or(EncodedFd {
 						raw: !0,
-						convert_fd: &fd::NoConvert
+						convert_fd: &fd::NoConvert,
 					});
 					efd.serialize(writer, Some(fd_map))
 				}
@@ -201,11 +215,16 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 			writer.write_all(self.bytes())
 		}
 	}
-
 }
 
 impl<'d, F: fd::ConvertFd> EncodedArgdata<'d, F> {
-	fn iter_subfield_next<'a>(&'a self, offset: &mut usize) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>> where 'd: 'a {
+	fn iter_subfield_next<'a>(
+		&'a self,
+		offset: &mut usize,
+	) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>>
+	where
+		'd: 'a,
+	{
 		let (result, offset_delta) = read_subfield(&self.bytes()[1 + *offset..]);
 		*offset += offset_delta;
 		result.map(|r| r.map(|d| ArgdataRef::encoded(d, &self.convert_fd)))
@@ -213,15 +232,31 @@ impl<'d, F: fd::ConvertFd> EncodedArgdata<'d, F> {
 }
 
 impl<'d, F: fd::ConvertFd> Seq<'d> for EncodedArgdata<'d, F> {
-	fn iter_seq_next<'a>(&'a self, offset: &mut usize) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>> where 'd: 'a {
-		if self.bytes().get(0) != Some(&7) { return None }
+	fn iter_seq_next<'a>(
+		&'a self,
+		offset: &mut usize,
+	) -> Option<Result<ArgdataRef<'a, 'd>, ReadError>>
+	where
+		'd: 'a,
+	{
+		if self.bytes().get(0) != Some(&7) {
+			return None;
+		}
 		self.iter_subfield_next(offset)
 	}
 }
 
 impl<'d, F: fd::ConvertFd> Map<'d> for EncodedArgdata<'d, F> {
-	fn iter_map_next<'a>(&'a self, offset: &mut usize) -> Option<Result<(ArgdataRef<'a, 'd>, ArgdataRef<'a, 'd>), ReadError>> where 'd: 'a {
-		if self.bytes().get(0) != Some(&6) { return None }
+	fn iter_map_next<'a>(
+		&'a self,
+		offset: &mut usize,
+	) -> Option<Result<(ArgdataRef<'a, 'd>, ArgdataRef<'a, 'd>), ReadError>>
+	where
+		'd: 'a,
+	{
+		if self.bytes().get(0) != Some(&6) {
+			return None;
+		}
 		let key = match self.iter_subfield_next(offset) {
 			None => return None,
 			Some(Ok(v)) => v,
