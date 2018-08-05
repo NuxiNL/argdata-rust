@@ -62,7 +62,7 @@ impl Display for ReadError {
 		match self {
 			ReadError::InvalidTag(x)      => write!(f, " (0x{:02X})", x),
 			ReadError::InvalidFdNumber(x) => write!(f, " ({})", *x as i32),
-			_ => Ok(())
+			_ => Ok(()),
 		}
 	}
 }

@@ -10,7 +10,7 @@ pub fn argdata() -> EncodedArgdata<'static, fd::Identity> {
 	argdata_impl()
 }
 
-#[cfg(target_os="cloudabi")]
+#[cfg(target_os = "cloudabi")]
 fn argdata_impl() -> EncodedArgdata<'static, fd::Identity> {
 	use std;
 
@@ -26,7 +26,7 @@ fn argdata_impl() -> EncodedArgdata<'static, fd::Identity> {
 	}
 }
 
-#[cfg(not(target_os="cloudabi"))]
+#[cfg(not(target_os = "cloudabi"))]
 fn argdata_impl() -> EncodedArgdata<'static, fd::Identity> {
 	encoded_with_fds(&[], fd::Identity)
 }

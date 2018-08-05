@@ -1,8 +1,8 @@
-use ReadError;
 use std::fmt;
-use Argdata;
 use std::ops::Deref;
+use Argdata;
 use ArgdataRef;
+use ReadError;
 use Value;
 
 struct FmtError<T>(Result<T, ReadError>);
@@ -56,19 +56,17 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 
 #[test]
 fn debug_fmt() {
-	let argdata = ::encoded(&b"\
-		\x06\x87\x08Hello\x00\x87\x08World\x00\x81\x02\x82\x02\x01\x86\x09\
-		\x70\xF1\x80\x29\x15\x84\x05\x58\xe5\xd9\x80\x83\x06\x80\x80\
-	"[..]);
+	let argdata = ::encoded(
+		&b"\x06\x87\x08Hello\x00\x87\x08World\x00\x81\x02\x82\x02\x01\x86\x09\
+		\x70\xF1\x80\x29\x15\x84\x05\x58\xe5\xd9\x80\x83\x06\x80\x80"[..],
+	);
 
 	assert_eq!(
 		format!("{:?}", &argdata as &Argdata),
 		"{\"Hello\": \"World\", false: true, timestamp(485, 88045333): 5826009, null: {null: null}}"
 	);
 
-	let argdata = ::encoded(&b"\
-		\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07\
-	"[..]);
+	let argdata = ::encoded(&b"\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07"[..]);
 
 	assert_eq!(
 		format!("{:?}", &argdata as &Argdata),

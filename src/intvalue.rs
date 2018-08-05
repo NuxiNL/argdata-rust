@@ -1,4 +1,4 @@
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{BigEndian, ByteOrder};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
@@ -12,13 +12,13 @@ use std::num::TryFromIntError;
 /// integer in the form of an `[u8]`.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct IntValue<'a> {
-	inner: Inner<'a>
+	inner: Inner<'a>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Inner<'a> {
 	Unsigned(u64),
-	Signed(i64), // For negative numbers only.
+	Signed(i64),   // For negative numbers only.
 	Big(&'a [u8]), // Big-endian 2's-complement signed integer of arbitrary length, that doesn't fit into a i64 or u64.
 }
 
@@ -32,9 +32,8 @@ impl<'a> IntValue<'a> {
 		let sign = sign(data);
 
 		// Remove redundant leading zeros/ones.
-		while
-			data.get(0) == Some(if sign { &0xFF } else { &0 }) &&
-			(*data.get(1).unwrap_or(&0) >= 0x80) == sign
+		while data.get(0) == Some(if sign { &0xFF } else { &0 })
+			&& (*data.get(1).unwrap_or(&0) >= 0x80) == sign
 		{
 			data = &data[1..]
 		}
@@ -58,7 +57,7 @@ impl<'a> IntValue<'a> {
 			Inner::Big(data)
 		};
 
-		IntValue{ inner }
+		IntValue { inner }
 	}
 
 	pub fn is_negative(&self) -> bool {
@@ -78,10 +77,12 @@ macro_rules! impl_s {
 	($t:ty) => {
 		impl<'a> From<$t> for IntValue<'a> {
 			fn from(value: $t) -> IntValue<'a> {
-				if value < 0 {
-					IntValue{ inner: Inner::Signed(value.into()) }
-				} else {
-					IntValue{ inner: Inner::Unsigned(value as u64) }
+				IntValue {
+					inner: if value < 0 {
+						Inner::Signed(value.into())
+					} else {
+						Inner::Unsigned(value as u64)
+					},
 				}
 			}
 		}
@@ -95,14 +96,16 @@ macro_rules! impl_s {
 				}
 			}
 		}
-	}
+	};
 }
 
 macro_rules! impl_u {
 	($t:ty) => {
 		impl<'a> From<$t> for IntValue<'a> {
 			fn from(value: $t) -> IntValue<'a> {
-				IntValue{ inner: Inner::Unsigned(u64::from(value)) }
+				IntValue {
+					inner: Inner::Unsigned(u64::from(value)),
+				}
 			}
 		}
 		impl<'a> TryFrom<IntValue<'a>> for $t {
@@ -114,7 +117,7 @@ macro_rules! impl_u {
 				}
 			}
 		}
-	}
+	};
 }
 
 impl_s!(i8);
@@ -179,7 +182,9 @@ impl<'a> Ord for IntValue<'a> {
 
 fn cmp_same_sign_bigint(a: &[u8], b: &[u8]) -> Ordering {
 	let mut o = a.len().cmp(&b.len());
-	if sign(a) { o = o.reverse() }
+	if sign(a) {
+		o = o.reverse()
+	}
 	o.then_with(|| a.cmp(b))
 }
 
@@ -217,12 +222,24 @@ fn test_serialize() {
 	assert_serialize(IntValue::from(-0x100), &[0xFF, 0x00]);
 	assert_serialize(IntValue::from(1000), &[0x03, 0xE8]);
 	assert_serialize(IntValue::from(-1000), &[0xFC, 0x18]);
-	assert_serialize(IntValue::from(u32::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(u64::max_value()), &[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(
+		IntValue::from(u32::max_value()),
+		&[0x00, 0xFF, 0xFF, 0xFF, 0xFF],
+	);
+	assert_serialize(
+		IntValue::from(u64::max_value()),
+		&[0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+	);
 	assert_serialize(IntValue::from(i32::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF]);
-	assert_serialize(IntValue::from(i64::max_value()), &[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	assert_serialize(
+		IntValue::from(i64::max_value()),
+		&[0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
+	);
 	assert_serialize(IntValue::from(i32::min_value()), &[0x80, 0x00, 0x00, 0x00]);
-	assert_serialize(IntValue::from(i64::min_value()), &[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	assert_serialize(
+		IntValue::from(i64::min_value()),
+		&[0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+	);
 	assert_serialize(IntValue::from_bigint(&[0, 0]), &[]);
 	assert_serialize(IntValue::from_bigint(&[0, 1]), &[1]);
 	assert_serialize(IntValue::from_bigint(&[1, 1]), &[1, 1]);
