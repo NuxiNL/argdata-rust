@@ -51,15 +51,15 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 	fn get_type(&self) -> Result<Type, ReadError> {
 		match self.bytes().first() {
 			None => Ok(Type::Null),
-			Some(&1) => Ok(Type::Binary),
-			Some(&2) => Ok(Type::Bool),
-			Some(&3) => Ok(Type::Fd),
-			Some(&4) => Ok(Type::Float),
-			Some(&5) => Ok(Type::Int),
-			Some(&6) => Ok(Type::Map),
-			Some(&7) => Ok(Type::Seq),
-			Some(&8) => Ok(Type::Str),
-			Some(&9) => Ok(Type::Timestamp),
+			Some(1) => Ok(Type::Binary),
+			Some(2) => Ok(Type::Bool),
+			Some(3) => Ok(Type::Fd),
+			Some(4) => Ok(Type::Float),
+			Some(5) => Ok(Type::Int),
+			Some(6) => Ok(Type::Map),
+			Some(7) => Ok(Type::Seq),
+			Some(8) => Ok(Type::Str),
+			Some(9) => Ok(Type::Timestamp),
 			Some(&tag) => Err(ReadError::InvalidTag(tag)),
 		}
 	}
@@ -73,66 +73,66 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_binary(&self) -> Result<&'d [u8], NotRead> {
 		match self.bytes().split_first() {
-			Some((&8, data)) => Ok(data),
+			Some((8, data)) => Ok(data),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_bool(&self) -> Result<bool, NotRead> {
 		match self.bytes().split_first() {
-			Some((&2, data)) if data == &[]  => Ok(false),
-			Some((&2, data)) if data == &[1] => Ok(true),
-			Some((&2, _)) => Err(NotRead::Error(ReadError::InvalidBoolValue)),
+			Some((2, []))  => Ok(false),
+			Some((2, [1])) => Ok(true),
+			Some((2, _)) => Err(NotRead::Error(ReadError::InvalidBoolValue)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead> where 'd: 'a {
 		match self.bytes().split_first() {
-			Some((&3, data)) if data.len() == 4 => Ok(encoded_fd(
+			Some((3, data)) if data.len() == 4 => Ok(encoded_fd(
 				BigEndian::read_u32(data),
 				&self.convert_fd
 			)),
-			Some((&3, _)) => Err(NotRead::Error(ReadError::InvalidFdLength)),
+			Some((3, _)) => Err(NotRead::Error(ReadError::InvalidFdLength)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_float(&self) -> Result<f64, NotRead> {
 		match self.bytes().split_first() {
-			Some((&4, data)) if data.len() == 8 =>
+			Some((4, data)) if data.len() == 8 =>
 				Ok(f64::from_bits(BigEndian::read_u64(data))),
-			Some((&4, _)) => Err(NotRead::Error(ReadError::InvalidFloatLength)),
+			Some((4, _)) => Err(NotRead::Error(ReadError::InvalidFloatLength)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_int_value(&self) -> Result<IntValue<'d>, NotRead> {
 		match self.bytes().split_first() {
-			Some((&5, data)) => Ok(IntValue::from_bigint(data)),
+			Some((5, data)) => Ok(IntValue::from_bigint(data)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead> where 'd: 'a {
 		match self.bytes().first() {
-			Some(&6) => Ok(self),
+			Some(6) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead> where 'd: 'a {
 		match self.bytes().first() {
-			Some(&7) => Ok(self),
+			Some(7) => Ok(self),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
 	fn read_str_value(&self) -> Result<StrValue<'d>, NotRead> {
 		match self.bytes().split_first() {
-			Some((&8, data)) if data.last() == Some(&0) =>
+			Some((8, data)) if data.last() == Some(&0) =>
 				Ok(StrValue::from_bytes_with_nul(data)),
-			Some((&8, _)) =>
+			Some((8, _)) =>
 				Err(ReadError::MissingNullTerminator.into()),
 			_ => Err(NoFit::DifferentType.into()),
 		}
@@ -140,7 +140,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_timestamp(&self) -> Result<Timespec, NotRead> {
 		match self.bytes().split_first() {
-			Some((&9, data)) => {
+			Some((9, data)) => {
 
 				// 12 bytes is enough for 2**64 seconds in nanoseconds.
 				if data.len() > 12 {

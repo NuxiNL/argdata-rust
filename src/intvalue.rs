@@ -62,10 +62,10 @@ impl<'a> IntValue<'a> {
 	}
 
 	pub fn is_negative(&self) -> bool {
-		match &self.inner {
-			&Inner::Unsigned(_) => false,
-			&Inner::Signed(_) => true,
-			&Inner::Big(v) => sign(v),
+		match self.inner {
+			Inner::Unsigned(_) => false,
+			Inner::Signed(_) => true,
+			Inner::Big(v) => sign(v),
 		}
 	}
 }

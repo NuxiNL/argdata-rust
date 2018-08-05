@@ -38,16 +38,16 @@ pub enum Value<'a, 'd: 'a> {
 impl<'a, 'd: 'a> Value<'a, 'd> {
 	pub fn get_type(&self) -> Type {
 		match self {
-			&Value::Null         => Type::Null,
-			&Value::Binary(_)    => Type::Binary,
-			&Value::Bool(_)      => Type::Bool,
-			&Value::Fd(_)        => Type::Fd,
-			&Value::Float(_)     => Type::Float,
-			&Value::Int(_)       => Type::Int,
-			&Value::Str(_)       => Type::Str,
-			&Value::Timestamp(_) => Type::Timestamp,
-			&Value::Map(_)       => Type::Map,
-			&Value::Seq(_)       => Type::Seq,
+			Value::Null         => Type::Null,
+			Value::Binary(_)    => Type::Binary,
+			Value::Bool(_)      => Type::Bool,
+			Value::Fd(_)        => Type::Fd,
+			Value::Float(_)     => Type::Float,
+			Value::Int(_)       => Type::Int,
+			Value::Str(_)       => Type::Str,
+			Value::Timestamp(_) => Type::Timestamp,
+			Value::Map(_)       => Type::Map,
+			Value::Seq(_)       => Type::Seq,
 		}
 	}
 }
