@@ -66,10 +66,10 @@ fn i128_serialized_length(v: i128) -> usize {
 #[test]
 fn timestamp_serialize_test() {
 	for &(timespec, serialized) in &[
-		(Timespec{ sec:  0, nsec:           0 }, &b"\x09"[..]),
-		(Timespec{ sec:  0, nsec:           1 }, &b"\x09\x01"[..]),
-		(Timespec{ sec: -1, nsec: 999_999_999 }, &b"\x09\xFF"[..]),
-		(Timespec{ sec: 10, nsec:           0 }, &b"\x09\x02\x54\x0B\xE4\x00"[..]),
+		(Timespec { sec:  0, nsec: 0           }, &b"\x09"[..]),
+		(Timespec { sec:  0, nsec: 1           }, &b"\x09\x01"[..]),
+		(Timespec { sec: -1, nsec: 999_999_999 }, &b"\x09\xFF"[..]),
+		(Timespec { sec: 10, nsec: 0           }, &b"\x09\x02\x54\x0B\xE4\x00"[..]),
 	] {
 		let value = timestamp(timespec);
 		let mut buf = Vec::new();

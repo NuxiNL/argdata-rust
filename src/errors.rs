@@ -59,7 +59,7 @@ impl Display for ReadError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		write!(f, "{}", self.description())?;
 		match self {
-			ReadError::InvalidTag(x)      => write!(f, " (0x{:02X})", x),
+			ReadError::InvalidTag(x) => write!(f, " (0x{:02X})", x),
 			ReadError::InvalidFdNumber(x) => write!(f, " ({})", *x as i32),
 			_ => Ok(()),
 		}

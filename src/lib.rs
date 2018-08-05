@@ -44,38 +44,15 @@ pub use value::{Type, Value};
 mod values_;
 
 pub use values_::{
-	encoded,
-	encoded_with_fds,
-	null,
-	binary,
-	bool,
-	float,
-	process_fd,
-	encoded_fd,
-	invalid_fd,
-	bigint,
-	int,
-	map,
-	seq,
-	str,
-	timestamp
+	bigint, binary, bool, encoded, encoded_fd, encoded_with_fds, float, int, invalid_fd, map, null,
+	process_fd, seq, str, timestamp,
 };
 
 /// Implementations of specific `Argdata` types.
 /// Use the functions in the root of this crate to create them.
 pub mod values {
 	pub use values_::{
-		EncodedArgdata,
-		Null,
-		Binary,
-		Bool,
-		Float,
-		BigInt,
-		Int,
-		Map,
-		Seq,
-		Str,
-		Timestamp,
+		BigInt, Binary, Bool, EncodedArgdata, Float, Int, Map, Null, Seq, Str, Timestamp,
 	};
 }
 
@@ -287,7 +264,7 @@ fn example<'d>(ad: &Argdata<'d>) {
 	let mut it = ad.read_map().expect("argdata should be a map").iter_map();
 	while let Some(Ok((key, val))) = it.next() {
 		match key.read_str().expect("keys should be strings") {
-			"socket"  => sock_fd = val.read_fd().ok(),
+			"socket" => sock_fd = val.read_fd().ok(),
 			"logfile" => read_fd = val.read_fd().ok(),
 			"message" => message = val.read_str().ok(),
 			_ => {}
