@@ -2,10 +2,8 @@ use std::io;
 
 use ReadError;
 
-pub fn read_subfield<'a>(data: &'a [u8]) ->
-	(Option<Result<&'a [u8], ReadError>>, usize)
-{
-	if data.len() == 0 {
+pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
+	if data.is_empty() {
 		return (None, 0)
 	}
 
