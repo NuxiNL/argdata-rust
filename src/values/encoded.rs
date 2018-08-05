@@ -10,7 +10,7 @@ use StrValue;
 use Timespec;
 use Type;
 use byteorder::{ByteOrder, BigEndian};
-use encoded_fd;
+use fd::EncodedFd;
 use fd;
 use std::convert::TryFrom;
 use std::io;
@@ -89,10 +89,10 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead> where 'd: 'a {
 		match self.bytes().split_first() {
-			Some((3, data)) if data.len() == 4 => Ok(encoded_fd(
-				BigEndian::read_u32(data),
-				&self.convert_fd
-			)),
+			Some((3, data)) if data.len() == 4 => Ok(EncodedFd{
+				raw: BigEndian::read_u32(data),
+				convert_fd: &self.convert_fd
+			}),
 			Some((3, _)) => Err(NotRead::Error(ReadError::InvalidFdLength)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
@@ -188,7 +188,10 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 					Ok(())
 				},
 				Ok(Type::Fd) => {
-					let efd = self.read_encoded_fd().unwrap_or(encoded_fd(!0, &fd::NoConvert));
+					let efd = self.read_encoded_fd().unwrap_or(EncodedFd{
+						raw: !0,
+						convert_fd: &fd::NoConvert
+					});
 					efd.serialize(writer, Some(fd_map))
 				}
 				_ => writer.write_all(self.bytes()),
