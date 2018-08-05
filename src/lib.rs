@@ -251,9 +251,7 @@ impl<'d, A> ArgdataExt<'d> for A where A: Argdata<'d> + ?Sized {
 	}
 
 	fn read_str(&self) -> Result<&'d str, NotRead> {
-		self.read_str_value().and_then(|v|
-			v.as_str().map_err(|_| ReadError::InvalidUtf8.into())
-		)
+		Ok(self.read_str_value()?.as_str()?)
 	}
 }
 

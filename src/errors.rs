@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::Display;
+use std::str::Utf8Error;
 use std;
 
 /// An error while reading argdata.
@@ -99,5 +100,17 @@ impl From<ReadError> for NotRead {
 impl From<NoFit> for NotRead {
 	fn from(e: NoFit) -> NotRead {
 		NotRead::NoFit(e)
+	}
+}
+
+impl From<Utf8Error> for ReadError {
+	fn from(_: Utf8Error) -> ReadError {
+		ReadError::InvalidUtf8
+	}
+}
+
+impl From<Utf8Error> for NotRead {
+	fn from(_: Utf8Error) -> NotRead {
+		NotRead::Error(ReadError::InvalidUtf8)
 	}
 }
