@@ -29,7 +29,7 @@ impl<'d, F: fd::ConvertFd> EncodedArgdata<'d, F> {
 
 /// Create an argdata value directly from an encoded argdata buffer.
 ///
-/// The data is not converted, it will be decoded on demand.
+/// The data is not converted. It will be decoded on demand.
 pub fn encoded<'d>(encoded: &'d [u8]) -> EncodedArgdata<'d, fd::NoConvert> {
 	EncodedArgdata{ encoded, convert_fd: fd::NoConvert }
 }
@@ -39,7 +39,7 @@ pub fn encoded<'d>(encoded: &'d [u8]) -> EncodedArgdata<'d, fd::NoConvert> {
 ///
 /// Reading file descriptors will use the provided `convert_fd` object.
 ///
-/// The data is not converted, it will be decoded on demand.
+/// The data is not converted. It will be decoded on demand.
 pub fn encoded_with_fds<'d, F: fd::ConvertFd>
 	(encoded: &'d [u8], convert_fd: F) -> EncodedArgdata<'d, F>
 {
