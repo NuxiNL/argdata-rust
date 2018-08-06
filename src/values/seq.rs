@@ -71,11 +71,10 @@ where
 		mut fd_map: Option<&mut fd::FdMapping>,
 	) -> io::Result<()> {
 		writer.write_all(&[7])?;
-		#[cfg_attr(rustfmt, rustfmt_skip)]
 		for i in 0..self.items.len() {
 			let a = self.items.get(i).unwrap();
 			write_subfield_length(a.serialized_length(), writer)?;
-			a.serialize(writer, if let Some(ref mut m) = fd_map { Some(*m) } else { None })?;
+			a.serialize(writer, fd_map.as_mut().map(|x| *x as _))?;
 		}
 		Ok(())
 	}
