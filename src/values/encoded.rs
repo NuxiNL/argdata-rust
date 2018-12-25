@@ -280,3 +280,31 @@ impl<'d, F: fd::ConvertFd> Map<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 }
+
+#[test]
+fn read_timestamp_test() {
+	assert_eq!(
+		encoded(b"\x09").read_timestamp().unwrap(),
+		Timespec { sec: 0, nsec: 0 }
+	);
+	assert_eq!(
+		encoded(b"\x09\x01").read_timestamp().unwrap(),
+		Timespec { sec: 0, nsec: 1 }
+	);
+	assert_eq!(
+		encoded(b"\x09\xFF").read_timestamp().unwrap(),
+		Timespec { sec: -1, nsec: 999_999_999 }
+	);
+	assert_eq!(
+		encoded(b"\x09\x02\x54\x0B\xE4\x00").read_timestamp().unwrap(),
+		Timespec { sec: 10, nsec: 0 }
+	);
+	assert_eq!(
+		encoded(b"\x09\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA").read_timestamp().unwrap(),
+		Timespec { sec: 80911113678783, nsec: 24503210 }
+	);
+	assert_eq!(
+		encoded(b"\x09\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01").read_timestamp().unwrap(),
+		Timespec { sec: -604462909807315, nsec: 412646913 }
+	);
+}

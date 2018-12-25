@@ -72,6 +72,7 @@ fn timestamp_serialize_test() {
 		(Timespec { sec:  0, nsec: 1           }, &b"\x09\x01"[..]),
 		(Timespec { sec: -1, nsec: 999_999_999 }, &b"\x09\xFF"[..]),
 		(Timespec { sec: 10, nsec: 0           }, &b"\x09\x02\x54\x0B\xE4\x00"[..]),
+		(Timespec { sec: 80911113678783, nsec: 24503210 }, &b"\x09\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA"[..]),
 	] {
 		let value = timestamp(timespec);
 		let mut buf = Vec::new();
