@@ -9,3 +9,6 @@ license = "BSD-2-Clause"
 
 [dependencies]
 byteorder = "1"
+
+[features]
+nightly = []

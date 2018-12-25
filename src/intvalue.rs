@@ -1,9 +1,9 @@
 use byteorder::{BigEndian, ByteOrder};
 use std::cmp::Ordering;
-use std::convert::TryFrom;
 use std::fmt;
 use std::io;
-use std::num::TryFromIntError;
+
+use super::TryFrom;
 
 /// Represents a signed integer value of any size.
 ///
@@ -67,6 +67,18 @@ impl<'a> IntValue<'a> {
 			Inner::Big(v) => sign(v),
 		}
 	}
+
+	/// Convert the value into a primitive integer type, if it fits.
+	///
+	/// Implemented for `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32` and `i64`.
+	///
+	/// If you enable the `nightly` feature of this crate, this function is not
+	/// available directly: Instead, the [`std::convert::TryFrom`] trait is
+	/// implemented for these types.
+	#[cfg(not(nightly))]
+	pub fn try_into<T: TryFrom<Self>>(self) -> Result<T, ()> {
+		TryFrom::try_from(self).map_err(|_| ())
+	}
 }
 
 fn sign(v: &[u8]) -> bool {
@@ -87,12 +99,12 @@ macro_rules! impl_s {
 			}
 		}
 		impl<'a> TryFrom<IntValue<'a>> for $t {
-			type Error = TryFromIntError;
+			type Error = ();
 			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
-					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
-					Inner::Signed(v) => Ok(TryFrom::try_from(v)?),
-					_ => TryFrom::try_from(u64::max_value()), // Always fails
+					Inner::Unsigned(v) => Ok(TryFrom::try_from(v).map_err(|_| ())?),
+					Inner::Signed(v) => Ok(TryFrom::try_from(v).map_err(|_| ())?),
+					_ => Err(()),
 				}
 			}
 		}
@@ -109,11 +121,11 @@ macro_rules! impl_u {
 			}
 		}
 		impl<'a> TryFrom<IntValue<'a>> for $t {
-			type Error = TryFromIntError;
+			type Error = ();
 			fn try_from(value: IntValue<'a>) -> Result<$t, Self::Error> {
 				match value.inner {
-					Inner::Unsigned(v) => Ok(TryFrom::try_from(v)?),
-					_ => TryFrom::try_from(-1), // Always fails
+					Inner::Unsigned(v) => Ok(TryFrom::try_from(v).map_err(|_| ())?),
+					_ => Err(()),
 				}
 			}
 		}

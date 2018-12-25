@@ -1,4 +1,4 @@
-#![feature(try_from)]
+#![cfg_attr(feature = "nightly", feature(try_from))]
 
 //! **Please note:**
 //! This crate is not yet stable.
@@ -8,7 +8,6 @@
 
 extern crate byteorder;
 
-use std::convert::TryFrom;
 use std::io;
 
 /// Access to the program environment.
@@ -19,6 +18,15 @@ pub mod container_traits;
 
 /// All the things related to file descriptors.
 pub mod fd;
+
+#[cfg(nightly)]
+use std::convert::TryFrom;
+
+#[cfg(not(nightly))]
+mod try_from;
+
+#[cfg(not(nightly))]
+use try_from::TryFrom;
 
 mod debug;
 mod errors;

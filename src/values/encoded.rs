@@ -1,7 +1,6 @@
 use byteorder::{BigEndian, ByteOrder};
 use fd;
 use fd::EncodedFd;
-use std::convert::TryFrom;
 use std::io;
 use subfield::read_subfield;
 use Argdata;
@@ -180,9 +179,12 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 				}
 
 				// Convert to i64 and i32, if it fits.
-				let sec: i64 = TryFrom::try_from(sec)
-					.map_err(|_| NotRead::Error(ReadError::TimestampOutOfRange))?;
-				let nsec = nsec as u32;
+				// TODO: Replace by TryFrom::try_from(sec) when TryFrom is stabilized.
+				if sec as i64 as i128 != sec {
+					return Err(ReadError::TimestampOutOfRange.into());
+				}
+				let sec = sec as i64;
+				let nsec = nsec as u32; // Always fits, since it is ∈ [0, 1e9).
 
 				Ok(Timespec { sec, nsec })
 			}
