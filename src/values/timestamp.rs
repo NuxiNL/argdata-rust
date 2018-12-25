@@ -40,8 +40,9 @@ impl<'d> Argdata<'d> for Timestamp {
 		let n = i128_serialized_length(nsec);
 		if n > 0 {
 			let mut buf = [0u8; 12];
-			BigEndian::write_int128(&mut buf, nsec, n);
-			writer.write_all(&buf[..n])?;
+			BigEndian::write_i32(&mut buf[0..4], (nsec >> 64) as i32);
+			BigEndian::write_u64(&mut buf[4..12], nsec as u64);
+			writer.write_all(&buf[12 - n..])?;
 		}
 		Ok(())
 	}

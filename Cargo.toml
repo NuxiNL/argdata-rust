@@ -8,4 +8,4 @@ authors = ["Mara Bos <m-ou.se@m-ou.se>"]
 license = "BSD-2-Clause"
 
 [dependencies]
-byteorder = { version = "1", features = ["i128"] }
+byteorder = "1"
