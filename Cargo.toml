@@ -1,7 +1,7 @@
 [package]
 name = "argdata"
 description = "Argdata: A binary serialization format."
-version = "0.1.1"
+version = "0.1.2"
 keywords = ["argdata", "cloudabi"]
 authors = ["Mara Bos <m-ou.se@m-ou.se>"]
 license = "BSD-2-Clause"
