@@ -158,16 +158,11 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 					return Err(ReadError::TimestampOutOfRange.into());
 				}
 
-				// Read nanoseconds into an integer.
+				// Read nanoseconds into an integer (128 bits are enough).
 				let mut nsec = if data.len() == 0 {
 					0
-				} else if data.len() <= 8 {
-					i128::from(BigEndian::read_int(data, data.len()))
 				} else {
-					let (high_bytes, low_bytes) = data.split_at(data.len() - 8);
-					let high = BigEndian::read_int(high_bytes, high_bytes.len());
-					let low = BigEndian::read_u64(low_bytes);
-					(i128::from(high) << 64) + i128::from(low)
+					BigEndian::read_int128(data, data.len())
 				};
 
 				// Split seconds and nanoseconds

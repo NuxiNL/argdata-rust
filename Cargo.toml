@@ -7,7 +7,7 @@ authors = ["Mara Bos <m-ou.se@m-ou.se>"]
 license = "BSD-2-Clause"
 
 [dependencies]
-byteorder = "1"
+byteorder = { version = "1.2.3", features = ["i128"] }
 
 [features]
 nightly = []
