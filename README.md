@@ -1,9 +1,8 @@
-# Argdata
+[![Documentation](https://docs.rs/argdata/badge.svg)](https://docs.rs/argdata)
+[![crates.io](https://img.shields.io/crates/v/argdata.svg)](https://crates.io/crates/argdata)
+[![Build Status](https://travis-ci.org/NuxiNL/argdata-rust.svg?branch=master)](https://travis-ci.org/NuxiNL/argdata-rust)
 
-<p>
-	<a href="https://crates.io/crates/argdata"><img src="https://img.shields.io/crates/v/argdata.svg" /></a>
-	<a href="https://docs.rs/argdata"><img src="https://docs.rs/argdata/badge.svg" alt="docs" /></a>
-</p>
+# Argdata
 
 Argdata is a binary serialisation format.
 See [the `argdata` repository](https://github.com/NuxiNL/argdata/blob/master/README.md).

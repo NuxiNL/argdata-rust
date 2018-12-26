@@ -12,3 +12,6 @@ byteorder = { version = "1.2.3", features = ["i128"] }
 
 [features]
 nightly = []
+
+[badges]
+travis-ci = { repository = "NuxiNL/argdata-rust" }
