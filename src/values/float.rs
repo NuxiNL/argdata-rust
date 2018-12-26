@@ -1,9 +1,6 @@
+use crate::{fd, Argdata, ReadError, Value};
 use byteorder::{BigEndian, ByteOrder};
-use fd;
 use std::io;
-use Argdata;
-use ReadError;
-use Value;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Float {

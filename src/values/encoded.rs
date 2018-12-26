@@ -1,21 +1,9 @@
+use crate::{
+	fd, fd::EncodedFd, subfield::read_subfield, Argdata, ArgdataRef, IntValue, MapIterable,
+	MapIterator, NoFit, NotRead, ReadError, SeqIterable, SeqIterator, StrValue, Timespec, Type,
+};
 use byteorder::{BigEndian, ByteOrder};
-use fd;
-use fd::EncodedFd;
 use std::io;
-use subfield::read_subfield;
-use Argdata;
-use ArgdataRef;
-use IntValue;
-use MapIterable;
-use MapIterator;
-use NoFit;
-use NotRead;
-use ReadError;
-use SeqIterable;
-use SeqIterator;
-use StrValue;
-use Timespec;
-use Type;
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodedArgdata<'d, F> {
@@ -345,7 +333,7 @@ fn read_float_test() {
 
 #[test]
 fn read_int_test() {
-	use ArgdataExt;
+	use crate::ArgdataExt;
 	assert_eq!(encoded(b"\x05").read_int(), Ok(0));
 	assert_eq!(encoded(b"\x05\x01").read_int(), Ok(1));
 	assert_eq!(encoded(b"\x05\xFF").read_int(), Ok(-1));
@@ -358,7 +346,7 @@ fn read_int_test() {
 
 #[test]
 fn read_map_test() {
-	use ArgdataExt;
+	use crate::ArgdataExt;
 	assert_eq!(encoded(b"\x06").read_map().unwrap().count(), 0);
 	assert_eq!(encoded(b"\x07").read_map().unwrap_err(), NoFit::DifferentType.into());
 	assert_eq!(encoded(b"\x04").read_map().unwrap_err(), NoFit::DifferentType.into());
@@ -386,7 +374,7 @@ fn read_map_test() {
 
 #[test]
 fn read_seq_test() {
-	use ArgdataExt;
+	use crate::ArgdataExt;
 	assert_eq!(encoded(b"\x07").read_seq().unwrap().count(), 0);
 	assert_eq!(encoded(b"\x06").read_seq().unwrap_err(), NoFit::DifferentType.into());
 	assert_eq!(encoded(b"\x04").read_seq().unwrap_err(), NoFit::DifferentType.into());
@@ -415,7 +403,7 @@ fn read_seq_test() {
 
 #[test]
 fn read_str_test() {
-	use ArgdataExt;
+	use crate::ArgdataExt;
 	assert_eq!(encoded(b"\x08\x00").read_str(), Ok(""));
 	assert_eq!(encoded(b"\x08Hello World!\x00").read_str(), Ok("Hello World!"));
 	assert_eq!(encoded(b"\x08\xCE\xB1\xCE\xB2\xCE\xBE\xCE\xB4\x00").read_str(), Ok("αβξδ"));

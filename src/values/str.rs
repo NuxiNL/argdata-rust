@@ -1,9 +1,5 @@
-use fd;
+use crate::{fd, Argdata, ReadError, StrValue, Value};
 use std::io;
-use Argdata;
-use ReadError;
-use StrValue;
-use Value;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Str<'d> {

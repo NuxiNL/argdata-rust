@@ -1,5 +1,4 @@
-use ArgdataRef;
-use ReadError;
+use crate::{ArgdataRef, ReadError};
 
 /// An iterator, iterating over an argdata sequence.
 #[derive(Copy, Clone)]
@@ -12,9 +11,9 @@ pub struct SeqIterator<'a, 'd: 'a> {
 pub trait SeqIterable<'d>: Sync {
 	/// Iterate to the next element, returning None if the end is reached.
 	///
-	/// **Don't use this method directly.**
-	/// Instead, get a [`SeqIterator`] (using [`::Argdata::read_seq`]), and
-	/// use it as any other [`Iterator`].
+	/// **Don't use this method directly.** Instead, get a [`SeqIterator`]
+	/// (using [`Argdata::read_seq`](crate::Argdata::read_seq)), and use it as
+	/// any other [`Iterator`].
 	///
 	/// # For implementors
 	///
@@ -23,8 +22,8 @@ pub trait SeqIterable<'d>: Sync {
 	/// the `cookie` is implementation-specific. It might for example be the
 	/// index into a vector, or the byte-offset into an encoded argdata value.
 	/// The initial value is also implementation specific, so provide a method
-	/// (such as [`::Argdata::read_seq`]) which provides users with a properly
-	/// initialized [`SeqIterator`].
+	/// (such as [`Argdata::read_seq`](crate::Argdata::read_seq)) which
+	/// provides users with a properly initialized [`SeqIterator`].
 	///
 	/// # Panics
 	///
@@ -42,7 +41,8 @@ impl<'a, 'd: 'a> SeqIterator<'a, 'd> {
 	///
 	/// This should only be used in implementations of [`SeqIterable`].
 	///
-	/// To get a seq iterator over Argdata use [`::Argdata::read_seq`].
+	/// To get a seq iterator over Argdata use
+	/// [`Argdata::read_seq`](crate::Argdata::read_seq).
 	pub fn new(seq: &'a (SeqIterable<'d> + 'a), cookie: usize) -> Self {
 		SeqIterator { seq, cookie }
 	}

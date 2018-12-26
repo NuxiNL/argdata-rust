@@ -1,9 +1,5 @@
-use fd;
+use crate::{fd, Argdata, IntValue, ReadError, Value};
 use std::io;
-use Argdata;
-use IntValue;
-use ReadError;
-use Value;
 
 /// A big-endian 2's-complement signed arbitrary length integer.
 #[derive(Clone, Copy, Debug)]

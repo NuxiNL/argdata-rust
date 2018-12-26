@@ -1,10 +1,6 @@
+use crate::{fd, Argdata, ReadError, Timespec, Value};
 use byteorder::{BigEndian, ByteOrder};
-use fd;
 use std::io;
-use Argdata;
-use ReadError;
-use Timespec;
-use Value;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Timestamp {

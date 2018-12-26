@@ -1,7 +1,4 @@
-use fd;
-
-use encoded_with_fds;
-use values::EncodedArgdata;
+use crate::{encoded_with_fds, fd, values::EncodedArgdata};
 
 /// Returns the argdata which this program was started with.
 ///

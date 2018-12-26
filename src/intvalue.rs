@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::io;
 
-use super::TryFrom;
+use crate::TryFrom;
 
 /// Represents a signed integer value of any size.
 ///

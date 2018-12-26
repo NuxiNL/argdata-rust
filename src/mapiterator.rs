@@ -1,5 +1,4 @@
-use ArgdataRef;
-use ReadError;
+use crate::{ArgdataRef, ReadError};
 
 /// An iterator, iterating over an argdata map.
 #[derive(Copy, Clone)]
@@ -12,9 +11,9 @@ pub struct MapIterator<'a, 'd: 'a> {
 pub trait MapIterable<'d>: Sync {
 	/// Iterate to the next key-value pair, returning None if the end is reached.
 	///
-	/// **Don't use this method directly.**
-	/// Instead, get a [`MapIterator`] (using [`::Argdata::read_map`]), and
-	/// use it as any other [`Iterator`].
+	/// **Don't use this method directly.** Instead, get a [`MapIterator`]
+	/// (using [`Argdata::read_map`](crate::Argdata::read_map)), and use it as
+	/// any other [`Iterator`].
 	///
 	/// # For implementors
 	///
@@ -23,8 +22,8 @@ pub trait MapIterable<'d>: Sync {
 	/// the `cookie` is implementation-specific. It might for example be the
 	/// index into a vector, or the byte-offset into an encoded argdata value.
 	/// The initial value is also implementation specific, so provide a method
-	/// (such as [`::Argdata::read_map`]) which provides users with a properly
-	/// initialized [`MapIterator`].
+	/// (such as [`Argdata::read_map`](crate::Argdata::read_map)) which
+	/// provides users with a properly initialized [`MapIterator`].
 	///
 	/// # Panics
 	///
@@ -42,7 +41,8 @@ impl<'a, 'd: 'a> MapIterator<'a, 'd> {
 	///
 	/// This should only be used in implementations of [`MapIterable`].
 	///
-	/// To get a map iterator over Argdata use [`::Argdata::read_map`].
+	/// To get a map iterator over Argdata use
+	/// [`Argdata::read_map`](crate::Argdata::read_map).
 	pub fn new(map: &'a (MapIterable<'d> + 'a), cookie: usize) -> Self {
 		MapIterator { map, cookie }
 	}

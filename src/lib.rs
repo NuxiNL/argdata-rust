@@ -5,8 +5,6 @@
 //! Deserialization is mostly stable and tested, but the serialization
 //! interface is probably going to change, and might have bugs.
 
-extern crate byteorder;
-
 use std::io;
 
 /// Access to the program environment.
@@ -25,7 +23,7 @@ use std::convert::TryFrom;
 mod try_from;
 
 #[cfg(not(nightly))]
-use try_from::TryFrom;
+use crate::try_from::TryFrom;
 
 mod debug;
 mod errors;
@@ -38,19 +36,19 @@ mod subfield;
 mod timespec;
 mod value;
 
-pub use errors::{NoFit, NotRead, ReadError};
-pub use intvalue::IntValue;
-pub use mapiterator::{MapIterable, MapIterator};
-pub use reference::ArgdataRef;
-pub use seqiterator::{SeqIterable, SeqIterator};
-pub use strvalue::StrValue;
-pub use timespec::Timespec;
-pub use value::{Type, Value};
+pub use crate::errors::{NoFit, NotRead, ReadError};
+pub use crate::intvalue::IntValue;
+pub use crate::mapiterator::{MapIterable, MapIterator};
+pub use crate::reference::ArgdataRef;
+pub use crate::seqiterator::{SeqIterable, SeqIterator};
+pub use crate::strvalue::StrValue;
+pub use crate::timespec::Timespec;
+pub use crate::value::{Type, Value};
 
 #[path = "values/mod.rs"]
 mod values_;
 
-pub use values_::{
+pub use crate::values_::{
 	bigint, binary, bool, encoded, encoded_fd, encoded_with_fds, float, int, invalid_fd, map, null,
 	process_fd, seq, str, timestamp,
 };
@@ -58,7 +56,7 @@ pub use values_::{
 /// Implementations of specific `Argdata` types.
 /// Use the functions in the root of this crate to create them.
 pub mod values {
-	pub use values_::{
+	pub use crate::values_::{
 		BigInt, Binary, Bool, EncodedArgdata, Float, Int, Map, Null, Seq, Str, Timestamp,
 	};
 }

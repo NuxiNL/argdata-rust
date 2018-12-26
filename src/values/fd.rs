@@ -1,10 +1,7 @@
+use crate::{fd, Argdata, ReadError, Value};
 use byteorder::{BigEndian, ByteOrder};
-use fd;
 use std::io;
 use std::os::raw::c_int;
-use Argdata;
-use ReadError;
-use Value;
 
 /// Create an argdata value representing a file descriptor of this process.
 pub fn process_fd(fd: c_int) -> fd::Fd {

@@ -1,4 +1,3 @@
-use std;
 use std::ffi::{CStr, FromBytesWithNulError};
 use std::str::Utf8Error;
 

@@ -1,9 +1,5 @@
-use fd;
+use crate::{fd, Argdata, IntValue, ReadError, Value};
 use std::io;
-use Argdata;
-use IntValue;
-use ReadError;
-use Value;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct Int<T> {

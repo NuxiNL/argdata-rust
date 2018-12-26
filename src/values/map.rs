@@ -1,13 +1,10 @@
-use container_traits::MapContainer;
-use fd;
+use crate::{
+	container_traits::MapContainer,
+	fd,
+	subfield::{subfield_length, write_subfield_length},
+	Argdata, ArgdataRef, MapIterable, MapIterator, ReadError, Value,
+};
 use std::io;
-use subfield::{subfield_length, write_subfield_length};
-use Argdata;
-use ArgdataRef;
-use MapIterable;
-use MapIterator;
-use ReadError;
-use Value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Map<'d, T: 'd> {

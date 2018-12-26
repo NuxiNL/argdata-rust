@@ -1,13 +1,10 @@
-use container_traits::Container;
-use fd;
+use crate::{
+	container_traits::Container,
+	fd,
+	subfield::{subfield_length, write_subfield_length},
+	Argdata, ArgdataRef, ReadError, SeqIterable, SeqIterator, Value,
+};
 use std::io;
-use subfield::{subfield_length, write_subfield_length};
-use Argdata;
-use ArgdataRef;
-use ReadError;
-use SeqIterable;
-use SeqIterator;
-use Value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Seq<'d, T: 'd> {

@@ -1,7 +1,5 @@
-use fd;
+use crate::{fd, values, Argdata};
 use std::ops::Deref;
-use values;
-use Argdata;
 
 /// A reference to an argdata value.
 /// Either a substring of an encoded argdata value, or just a `&Argdata`.
@@ -13,7 +11,7 @@ impl<'a, 'd: 'a> ArgdataRef<'a, 'd> {
 	/// Create an ArgdataRef that refers to a substring of an encoded argdata value.
 	pub fn encoded(bytes: &'d [u8], convert_fd: &'a (fd::ConvertFd + 'a)) -> ArgdataRef<'a, 'd> {
 		ArgdataRef {
-			inner: Inner::Encoded(::encoded_with_fds(bytes, convert_fd)),
+			inner: Inner::Encoded(crate::encoded_with_fds(bytes, convert_fd)),
 		}
 	}
 

@@ -1,6 +1,5 @@
+use crate::ReadError;
 use std::io;
-
-use ReadError;
 
 pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
 	if data.is_empty() {
