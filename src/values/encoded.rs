@@ -356,9 +356,62 @@ fn read_int_test() {
 	assert_eq!(encoded(b"\x04").read_int_value(), Err(NoFit::DifferentType.into()));
 }
 
-// TODO: Tests for maps
+#[test]
+fn read_map_test() {
+	use ArgdataExt;
+	assert_eq!(encoded(b"\x06").read_map().unwrap().count(), 0);
+	assert_eq!(encoded(b"\x07").read_map().unwrap_err(), NoFit::DifferentType.into());
+	assert_eq!(encoded(b"\x04").read_map().unwrap_err(), NoFit::DifferentType.into());
+	assert_eq!(
+		encoded(b"\x06\x81\x05\x82\x05\x01\x82\x05\x02\x82\x05\x03")
+			.read_map().unwrap()
+			.map(|e| e.map(|(k, v)| (
+				k.read_int().unwrap(),
+				v.read_int().unwrap(),
+			)).unwrap())
+			.collect::<Vec<(i32, i32)>>(),
+		[(0, 1), (2, 3)]
+	);
+	assert_eq!(
+		encoded(b"\x06\x81\x05\x82\x05\x01\x82\x05\x02")
+			.read_map().unwrap()
+			.map(|e| e.map(|(k, v)| (
+				k.read_int().unwrap(),
+				v.read_int().unwrap(),
+			)))
+			.collect::<Vec<_>>(),
+		[Ok((0, 1)), Err(ReadError::InvalidKeyValuePair.into())]
+	);
+}
 
-// TODO: Tests for sequences
+#[test]
+fn read_seq_test() {
+	use ArgdataExt;
+	assert_eq!(encoded(b"\x07").read_seq().unwrap().count(), 0);
+	assert_eq!(encoded(b"\x06").read_seq().unwrap_err(), NoFit::DifferentType.into());
+	assert_eq!(encoded(b"\x04").read_seq().unwrap_err(), NoFit::DifferentType.into());
+	assert_eq!(
+		encoded(b"\x07\x81\x05\x82\x05\x01\x82\x05\x02")
+			.read_seq().unwrap()
+			.map(|e| e.unwrap().read_int().unwrap())
+			.collect::<Vec<i32>>(),
+		[0, 1, 2]
+	);
+	assert_eq!(
+		encoded(b"\x07\x81\x05\x82\x05\x01\x83\x05\x02")
+			.read_seq().unwrap()
+			.map(|e| e.map(|e| e.read_int().unwrap()))
+			.collect::<Vec<_>>(),
+		[Ok(0), Ok(1), Err(ReadError::InvalidSubfield.into())]
+	);
+	assert_eq!(
+		encoded(b"\x07\x81\x05\x82\x05\x01\x01\x01\x01")
+			.read_seq().unwrap()
+			.map(|e| e.map(|e| e.read_int().unwrap()))
+			.collect::<Vec<_>>(),
+		[Ok(0), Ok(1), Err(ReadError::InvalidSubfield.into())]
+	);
+}
 
 #[test]
 fn read_str_test() {
