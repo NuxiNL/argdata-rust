@@ -277,29 +277,128 @@ impl<'d, F: fd::ConvertFd> Map<'d> for EncodedArgdata<'d, F> {
 }
 
 #[test]
+fn get_type_test() {
+	assert_eq!(encoded(b"").get_type(), Ok(Type::Null));
+	assert_eq!(encoded(b"\x01").get_type(), Ok(Type::Binary));
+	assert_eq!(encoded(b"\x02").get_type(), Ok(Type::Bool));
+	assert_eq!(encoded(b"\x03").get_type(), Ok(Type::Fd));
+	assert_eq!(encoded(b"\x04").get_type(), Ok(Type::Float));
+	assert_eq!(encoded(b"\x05").get_type(), Ok(Type::Int));
+	assert_eq!(encoded(b"\x06").get_type(), Ok(Type::Map));
+	assert_eq!(encoded(b"\x07").get_type(), Ok(Type::Seq));
+	assert_eq!(encoded(b"\x08").get_type(), Ok(Type::Str));
+	assert_eq!(encoded(b"\x09").get_type(), Ok(Type::Timestamp));
+	assert_eq!(encoded(b"\x0A").get_type(), Err(ReadError::InvalidTag(10)));
+}
+
+#[test]
+fn read_null_test() {
+	assert_eq!(encoded(b"").read_null(), Ok(()));
+	assert_eq!(encoded(b"\x01").read_null(), Err(NoFit::DifferentType.into()));
+}
+
+#[test]
+fn read_binary_test() {
+	assert_eq!(encoded(b"\x01").read_binary(), Ok(&b""[..]));
+	assert_eq!(encoded(b"\x01\x00\x11\x22").read_binary(), Ok(&b"\x00\x11\x22"[..]));
+	assert_eq!(encoded(b"").read_binary(), Err(NoFit::DifferentType.into()));
+	assert_eq!(encoded(b"\x02").read_binary(), Err(NoFit::DifferentType.into()));
+}
+
+#[test]
+fn read_bool_test() {
+	assert_eq!(encoded(b"\x02").read_bool(), Ok(false));
+	assert_eq!(encoded(b"\x02\x01").read_bool(), Ok(true));
+	assert_eq!(encoded(b"\x02\x01\x01").read_bool(), Err(ReadError::InvalidBoolValue.into()));
+	assert_eq!(encoded(b"\x02\x00").read_bool(), Err(ReadError::InvalidBoolValue.into()));
+	assert_eq!(encoded(b"\x02\xFF").read_bool(), Err(ReadError::InvalidBoolValue.into()));
+	assert_eq!(encoded(b"").read_bool(), Err(NoFit::DifferentType.into()));
+	assert_eq!(encoded(b"\x01").read_bool(), Err(NoFit::DifferentType.into()));
+}
+
+#[test]
+fn read_encoded_fd_test() {
+	assert_eq!(encoded(b"\x03\x00\x00\x00\x00").read_encoded_fd().unwrap().raw_encoded_number(), 0);
+	assert_eq!(encoded(b"\x03\x00\x00\x01\x23").read_encoded_fd().unwrap().raw_encoded_number(), 0x123);
+	assert_eq!(encoded(b"\x03\xFF\xFF\xFF\xFF").read_encoded_fd().unwrap().raw_encoded_number(), !0);
+	assert_eq!(encoded(b"\x03\x01").read_encoded_fd().unwrap_err(), ReadError::InvalidFdLength.into());
+	assert_eq!(encoded(b"\x03").read_encoded_fd().unwrap_err(), ReadError::InvalidFdLength.into());
+	assert_eq!(encoded(b"\x0312345").read_encoded_fd().unwrap_err(), ReadError::InvalidFdLength.into());
+	assert_eq!(encoded(b"").read_encoded_fd().unwrap_err(), NoFit::DifferentType.into());
+	assert_eq!(encoded(b"\x01").read_encoded_fd().unwrap_err(), NoFit::DifferentType.into());
+}
+
+#[test]
+fn read_float_test() {
+	assert_eq!(encoded(b"\x04\x00\x00\x00\x00\x00\x00\x00\x00").read_float(), Ok(0.0));
+	assert_eq!(encoded(b"\x04\x3F\xF8\x00\x00\x00\x00\x00\x00").read_float(), Ok(1.5));
+	assert_eq!(encoded(b"\x04\x7F\xF0\x00\x00\x00\x00\x00\x00").read_float(), Ok(std::f64::INFINITY));
+	assert!(encoded(b"\x04\xFF\xFF\xFF\xFF\xFF\x00\x00\x00").read_float().unwrap().is_nan());
+	assert_eq!(encoded(b"\x04123").read_float(), Err(ReadError::InvalidFloatLength.into()));
+	assert_eq!(encoded(b"\x04").read_float(), Err(ReadError::InvalidFloatLength.into()));
+	assert_eq!(encoded(b"\x04123456789").read_float(), Err(ReadError::InvalidFloatLength.into()));
+	assert_eq!(encoded(b"").read_float(), Err(NoFit::DifferentType.into()));
+	assert_eq!(encoded(b"\x01").read_float(), Err(NoFit::DifferentType.into()));
+}
+
+#[test]
+fn read_int_test() {
+	use ArgdataExt;
+	assert_eq!(encoded(b"\x05").read_int(), Ok(0));
+	assert_eq!(encoded(b"\x05\x01").read_int(), Ok(1));
+	assert_eq!(encoded(b"\x05\xFF").read_int(), Ok(-1));
+	assert_eq!(encoded(b"\x05\x3F\xF8").read_int::<u16>(), Ok(0x3FF8));
+	assert_eq!(encoded(b"\x05\x3F\xF8").read_int::<u8>(), Err(NoFit::OutOfRange.into()));
+	assert_eq!(encoded(b"\x05\xFF").read_int::<u8>(), Err(NoFit::OutOfRange.into()));
+	assert_eq!(encoded(b"").read_int_value(), Err(NoFit::DifferentType.into()));
+	assert_eq!(encoded(b"\x04").read_int_value(), Err(NoFit::DifferentType.into()));
+}
+
+// TODO: Tests for maps
+
+// TODO: Tests for sequences
+
+#[test]
+fn read_str() {
+	use ArgdataExt;
+	assert_eq!(encoded(b"\x08\x00").read_str(), Ok(""));
+	assert_eq!(encoded(b"\x08Hello World!\x00").read_str(), Ok("Hello World!"));
+	assert_eq!(encoded(b"\x08\xCE\xB1\xCE\xB2\xCE\xBE\xCE\xB4\x00").read_str(), Ok("αβξδ"));
+	assert_eq!(encoded(b"\x08\x80abc\x00").read_str(), Err(ReadError::InvalidUtf8.into()));
+	assert_eq!(encoded(b"\x08").read_str(), Err(ReadError::MissingNullTerminator.into()));
+	assert_eq!(encoded(b"\x08Hello World!").read_str(), Err(ReadError::MissingNullTerminator.into()));
+	assert_eq!(encoded(b"").read_str(), Err(NoFit::DifferentType.into()));
+	assert_eq!(encoded(b"\x01").read_str(), Err(NoFit::DifferentType.into()));
+}
+
+#[test]
 fn read_timestamp_test() {
 	assert_eq!(
-		encoded(b"\x09").read_timestamp().unwrap(),
-		Timespec { sec: 0, nsec: 0 }
+		encoded(b"\x09").read_timestamp(),
+		Ok(Timespec { sec: 0, nsec: 0 })
 	);
 	assert_eq!(
-		encoded(b"\x09\x01").read_timestamp().unwrap(),
-		Timespec { sec: 0, nsec: 1 }
+		encoded(b"\x09\x01").read_timestamp(),
+		Ok(Timespec { sec: 0, nsec: 1 })
 	);
 	assert_eq!(
-		encoded(b"\x09\xFF").read_timestamp().unwrap(),
-		Timespec { sec: -1, nsec: 999_999_999 }
+		encoded(b"\x09\xFF").read_timestamp(),
+		Ok(Timespec { sec: -1, nsec: 999_999_999 })
 	);
 	assert_eq!(
-		encoded(b"\x09\x02\x54\x0B\xE4\x00").read_timestamp().unwrap(),
-		Timespec { sec: 10, nsec: 0 }
+		encoded(b"\x09\x02\x54\x0B\xE4\x00").read_timestamp(),
+		Ok(Timespec { sec: 10, nsec: 0 })
 	);
 	assert_eq!(
-		encoded(b"\x09\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA").read_timestamp().unwrap(),
-		Timespec { sec: 80911113678783, nsec: 24503210 }
+		encoded(b"\x09\x11\x22\x33\x44\x55\x66\x77\x88\x99\xAA").read_timestamp(),
+		Ok(Timespec { sec: 80911113678783, nsec: 24503210 })
 	);
 	assert_eq!(
-		encoded(b"\x09\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01").read_timestamp().unwrap(),
-		Timespec { sec: -604462909807315, nsec: 412646913 }
+		encoded(b"\x09\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01").read_timestamp(),
+		Ok(Timespec { sec: -604462909807315, nsec: 412646913 })
+	);
+	assert_eq!(
+		encoded(b"\x08").read_timestamp(),
+		Err(NoFit::DifferentType.into()),
 	);
 }
