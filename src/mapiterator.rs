@@ -54,3 +54,9 @@ impl<'a, 'd: 'a> Iterator for MapIterator<'a, 'd> {
 		self.map.iter_map_next(&mut self.cookie)
 	}
 }
+
+impl std::fmt::Debug for MapIterator<'_, '_> {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "MapIterator(.., {})", self.cookie)
+	}
+}

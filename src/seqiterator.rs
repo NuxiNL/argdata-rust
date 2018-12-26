@@ -54,3 +54,9 @@ impl<'a, 'd: 'a> Iterator for SeqIterator<'a, 'd> {
 		self.seq.iter_seq_next(&mut self.cookie)
 	}
 }
+
+impl std::fmt::Debug for SeqIterator<'_, '_> {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "SeqIterator(.., {})", self.cookie)
+	}
+}
