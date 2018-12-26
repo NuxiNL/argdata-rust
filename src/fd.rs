@@ -110,3 +110,9 @@ impl FdMapping for Vec<Fd> {
 		new_i
 	}
 }
+
+impl<T> std::fmt::Debug for EncodedFd<T> {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "EncodedFd(0x{:08X})", self.raw)
+	}
+}
