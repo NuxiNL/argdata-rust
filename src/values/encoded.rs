@@ -79,7 +79,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn read_binary(&self) -> Result<&'d [u8], NotRead> {
 		match self.bytes().split_first() {
-			Some((8, data)) => Ok(data),
+			Some((1, data)) => Ok(data),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
