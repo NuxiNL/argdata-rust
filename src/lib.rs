@@ -2,9 +2,8 @@
 
 //! **Please note:**
 //! This crate is not yet stable.
-//! The interface can and will change.
-//! Almost nothing is tested yet.
-//! Deserialization probably works, but serialization has bugs.
+//! Deserialization is mostly stable and tested, but the serialization
+//! interface is probably going to change, and might have bugs.
 
 extern crate byteorder;
 
