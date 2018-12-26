@@ -17,7 +17,7 @@ pub struct EncodedFd<T> {
 pub struct InvalidFd;
 
 /// Something that can convert encoded fd numbers to actual Fds.
-pub trait ConvertFd {
+pub trait ConvertFd: Sync {
 	/// Converts an encoded fd number to an actual Fd.
 	fn convert_fd(&self, raw: u32) -> Result<Fd, InvalidFd>;
 }
@@ -72,7 +72,7 @@ impl ConvertFd for NoConvert {
 
 impl<F> ConvertFd for ConvertFdFn<F>
 where
-	F: Fn(u32) -> Result<Fd, InvalidFd>,
+	F: Fn(u32) -> Result<Fd, InvalidFd> + Sync,
 {
 	fn convert_fd(&self, fd: u32) -> Result<Fd, InvalidFd> {
 		self.0(fd)

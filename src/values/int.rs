@@ -27,7 +27,7 @@ impl<T: Copy> Int<T> where {
 
 impl<'d, T> Argdata<'d> for Int<T>
 where
-	T: Copy,
+	T: Copy + Sync,
 	IntValue<'static>: From<T>,
 {
 	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>

@@ -9,7 +9,7 @@ pub struct MapIterator<'a, 'd: 'a> {
 }
 
 /// Something that can be iterated over using a [`MapIterator`].
-pub trait MapIterable<'d> {
+pub trait MapIterable<'d>: Sync {
 	/// Iterate to the next key-value pair, returning None if the end is reached.
 	///
 	/// **Don't use this method directly.**

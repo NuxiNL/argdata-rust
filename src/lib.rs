@@ -77,7 +77,7 @@ pub mod values {
 /// `get_type()` and `read_*()` need to be consistent, which means that `read_$TYPE()` for the type
 /// returned by `get_type()` may *not* return an `Err(NotRead::NoFit)`. Otherwise, `read()` will
 /// panic.
-pub trait Argdata<'d> {
+pub trait Argdata<'d>: Sync {
 	/// Read the value.
 	fn read<'a>(&'a self) -> Result<Value<'a, 'd>, ReadError>
 	where

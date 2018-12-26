@@ -1,10 +1,9 @@
 use std::borrow::Cow;
 use std::cmp::min;
-use std::rc::Rc;
 use std::sync::Arc;
 
 /// A random-access container.
-pub trait Container {
+pub trait Container: Sync {
 	type Item;
 	fn get(&self, index: usize) -> Option<&Self::Item>;
 	fn len(&self) -> usize;
@@ -14,7 +13,7 @@ pub trait Container {
 ///
 /// Both a tuple of two Containers and a Container of tuples are considered MapContainers:
 /// Examples are `(Vec<Key>, &[Val])` and `Box<[(Key, Val)]>`.
-pub trait MapContainer {
+pub trait MapContainer: Sync {
 	type Key;
 	type Value;
 	fn get(&self, index: usize) -> Option<(&Self::Key, &Self::Value)>;
@@ -58,7 +57,7 @@ where
 
 macro_rules! impl_container {
 	(($($a:tt)*) => $t:ty) => {
-		impl<$($a)*> Container for $t {
+		impl<$($a)*> Container for $t where T: Sync {
 			type Item = T;
 			fn get(&self, index: usize) -> Option<&T> { self[..].get(index) }
 			fn len(&self) -> usize { self[..].len() }
@@ -69,8 +68,7 @@ macro_rules! impl_container {
 // TODO: Find a way to do this for all C: Deref<Target=[T]>, but not &C.
 impl_container!((T) => Vec<T>);
 impl_container!((T) => Box<[T]>);
-impl_container!((T) => Rc<[T]>);
-impl_container!((T) => Arc<[T]>);
+impl_container!((T: Send) => Arc<[T]>);
 impl_container!(('a, T: Clone) => Cow<'a, [T]>);
 
 impl_container!((T) => [T]);
