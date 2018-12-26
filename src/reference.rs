@@ -33,9 +33,9 @@ pub enum Inner<'a, 'd: 'a> {
 impl<'a, 'd: 'a> Deref for ArgdataRef<'a, 'd> {
 	type Target = Argdata<'d> + 'a;
 	fn deref(&self) -> &Self::Target {
-		match &self.inner {
-			&Inner::Encoded(ref argdata) => argdata,
-			&Inner::Reference(argdata) => argdata,
+		match self.inner {
+			Inner::Encoded(ref argdata) => argdata,
+			Inner::Reference(argdata) => argdata,
 		}
 	}
 }

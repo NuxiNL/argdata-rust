@@ -161,7 +161,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 				}
 
 				// Read nanoseconds into an integer (128 bits are enough).
-				let mut nsec = if data.len() == 0 {
+				let mut nsec = if data.is_empty() {
 					0
 				} else {
 					BigEndian::read_int128(data, data.len())

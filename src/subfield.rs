@@ -47,7 +47,7 @@ pub fn write_subfield_length(length: usize, writer: &mut io::Write) -> io::Resul
 	let mut n = subfield_length_length(length);
 	while n != 0 {
 		n -= 1;
-		let mut byte = (length >> 7 * n) as u8;
+		let mut byte = (length >> (7 * n)) as u8;
 		if n == 0 {
 			byte |= 0x80;
 		} else {

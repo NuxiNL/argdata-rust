@@ -45,7 +45,7 @@ impl<'a> IntValue<'a> {
 			data = &data[1..]
 		}
 
-		let inner = if data.len() == 0 {
+		let inner = if data.is_empty() {
 			Inner::Unsigned(0)
 		} else if data.len() <= 8 {
 			if sign {
@@ -162,7 +162,7 @@ impl<'a> IntValue<'a> {
 		let mut n = self.serialized_length();
 		while n != 0 {
 			n -= 1;
-			let byte = if n == 8 { 0 } else { (value >> n * 8) as u8 };
+			let byte = if n == 8 { 0 } else { (value >> (n * 8)) as u8 };
 			writer.write_all(&[byte])?;
 		}
 		Ok(())
