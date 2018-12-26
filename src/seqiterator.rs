@@ -9,11 +9,11 @@ pub struct SeqIterator<'a, 'd: 'a> {
 }
 
 /// Something that can be iterated over using a [`SeqIterator`].
-pub trait SeqIterable<'d> {
+pub trait SeqIterable<'d>: Sync {
 	/// Iterate to the next element, returning None if the end is reached.
 	///
 	/// **Don't use this method directly.**
-	/// Instead, get a [`SeqIterator`] (using [`::Argdata.read_seq`]), and
+	/// Instead, get a [`SeqIterator`] (using [`::Argdata::read_seq`]), and
 	/// use it as any other [`Iterator`].
 	///
 	/// # For implementors
