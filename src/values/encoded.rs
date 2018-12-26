@@ -359,7 +359,7 @@ fn read_int_test() {
 // TODO: Tests for sequences
 
 #[test]
-fn read_str() {
+fn read_str_test() {
 	use ArgdataExt;
 	assert_eq!(encoded(b"\x08\x00").read_str(), Ok(""));
 	assert_eq!(encoded(b"\x08Hello World!\x00").read_str(), Ok("Hello World!"));
