@@ -1,7 +1,7 @@
 use fd;
 use IntValue;
-use Map;
-use Seq;
+use MapIterator;
+use SeqIterator;
 use StrValue;
 use Timespec;
 
@@ -31,8 +31,8 @@ pub enum Value<'a, 'd: 'a> {
 	Int(IntValue<'d>),
 	Str(StrValue<'d>),
 	Timestamp(Timespec),
-	Map(&'a Map<'d>),
-	Seq(&'a Seq<'d>),
+	Map(MapIterator<'a, 'd>),
+	Seq(SeqIterator<'a, 'd>),
 }
 
 impl<'a, 'd: 'a> Value<'a, 'd> {

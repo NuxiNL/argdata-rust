@@ -6,11 +6,13 @@ use subfield::read_subfield;
 use Argdata;
 use ArgdataRef;
 use IntValue;
-use Map;
+use MapIterable;
+use MapIterator;
 use NoFit;
 use NotRead;
 use ReadError;
-use Seq;
+use SeqIterable;
+use SeqIterator;
 use StrValue;
 use Timespec;
 use Type;
@@ -122,22 +124,22 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_map<'a>(&'a self) -> Result<&'a (Map<'d> + 'a), NotRead>
+	fn read_map<'a>(&'a self) -> Result<MapIterator<'a, 'd>, NotRead>
 	where
 		'd: 'a,
 	{
 		match self.bytes().first() {
-			Some(6) => Ok(self),
+			Some(6) => Ok(MapIterator::new(self, 1)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
 
-	fn read_seq<'a>(&'a self) -> Result<&'a (Seq<'d> + 'a), NotRead>
+	fn read_seq<'a>(&'a self) -> Result<SeqIterator<'a, 'd>, NotRead>
 	where
 		'd: 'a,
 	{
 		match self.bytes().first() {
-			Some(7) => Ok(self),
+			Some(7) => Ok(SeqIterator::new(self, 1)),
 			_ => Err(NoFit::DifferentType.into()),
 		}
 	}
@@ -231,13 +233,13 @@ impl<'d, F: fd::ConvertFd> EncodedArgdata<'d, F> {
 	where
 		'd: 'a,
 	{
-		let (result, offset_delta) = read_subfield(&self.bytes()[1 + *offset..]);
+		let (result, offset_delta) = read_subfield(&self.bytes()[*offset..]);
 		*offset += offset_delta;
 		result.map(|r| r.map(|d| ArgdataRef::encoded(d, &self.convert_fd)))
 	}
 }
 
-impl<'d, F: fd::ConvertFd> Seq<'d> for EncodedArgdata<'d, F> {
+impl<'d, F: fd::ConvertFd> SeqIterable<'d> for EncodedArgdata<'d, F> {
 	fn iter_seq_next<'a>(
 		&'a self,
 		offset: &mut usize,
@@ -252,7 +254,7 @@ impl<'d, F: fd::ConvertFd> Seq<'d> for EncodedArgdata<'d, F> {
 	}
 }
 
-impl<'d, F: fd::ConvertFd> Map<'d> for EncodedArgdata<'d, F> {
+impl<'d, F: fd::ConvertFd> MapIterable<'d> for EncodedArgdata<'d, F> {
 	fn iter_map_next<'a>(
 		&'a self,
 		offset: &mut usize,

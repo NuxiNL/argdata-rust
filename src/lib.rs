@@ -31,9 +31,9 @@ use try_from::TryFrom;
 mod debug;
 mod errors;
 mod intvalue;
-mod map;
+mod mapiterator;
 mod reference;
-mod seq;
+mod seqiterator;
 mod strvalue;
 mod subfield;
 mod timespec;
@@ -41,9 +41,9 @@ mod value;
 
 pub use errors::{NoFit, NotRead, ReadError};
 pub use intvalue::IntValue;
-pub use map::{Map, MapIterator};
+pub use mapiterator::{MapIterable, MapIterator};
 pub use reference::ArgdataRef;
-pub use seq::{Seq, SeqIterator};
+pub use seqiterator::{SeqIterable, SeqIterator};
 pub use strvalue::StrValue;
 pub use timespec::Timespec;
 pub use value::{Type, Value};
@@ -168,8 +168,8 @@ pub trait Argdata<'d> {
 		}
 	}
 
-	/// Check if the value is a map, and get access to it if it is.
-	fn read_map<'a>(&'a self) -> Result<&'a Map<'d>, NotRead>
+	/// Check if the value is a map, and get an iterator over it if it is.
+	fn read_map<'a>(&'a self) -> Result<MapIterator<'a, 'd>, NotRead>
 	where
 		'd: 'a,
 	{
@@ -179,8 +179,8 @@ pub trait Argdata<'d> {
 		}
 	}
 
-	/// Check if the value is a seq, and get access to it if it is.
-	fn read_seq<'a>(&'a self) -> Result<&'a Seq<'d>, NotRead>
+	/// Check if the value is a seq, and get an iterator over it if it is.
+	fn read_seq<'a>(&'a self) -> Result<SeqIterator<'a, 'd>, NotRead>
 	where
 		'd: 'a,
 	{
@@ -270,7 +270,7 @@ fn example<'d>(ad: &Argdata<'d>) {
 	let mut read_fd = None;
 	let mut message = None;
 
-	let mut it = ad.read_map().expect("argdata should be a map").iter_map();
+	let mut it = ad.read_map().expect("argdata should be a map");
 	while let Some(Ok((key, val))) = it.next() {
 		match key.read_str().expect("keys should be strings") {
 			"socket" => sock_fd = val.read_fd().ok(),

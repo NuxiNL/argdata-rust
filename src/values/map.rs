@@ -4,6 +4,8 @@ use std::io;
 use subfield::{subfield_length, write_subfield_length};
 use Argdata;
 use ArgdataRef;
+use MapIterable;
+use MapIterator;
 use ReadError;
 use Value;
 
@@ -60,7 +62,7 @@ where
 	where
 		'd: 'a,
 	{
-		Ok(Value::Map(self))
+		Ok(Value::Map(MapIterator::new(self, 0)))
 	}
 
 	fn serialized_length(&self) -> usize {
@@ -84,7 +86,7 @@ where
 	}
 }
 
-impl<'d, T> ::Map<'d> for Map<'d, T>
+impl<'d, T> MapIterable<'d> for Map<'d, T>
 where
 	T: MapContainer,
 	<T as MapContainer>::Key: Argdata<'d>,

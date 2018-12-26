@@ -40,14 +40,14 @@ impl<'a, 'd> fmt::Debug for Value<'a, 'd> {
 			Value::Str(val) => fmt::Debug::fmt(&FmtError(val.as_str().map_err(Into::into)), f),
 			Value::Timestamp(val) => write!(f, "timestamp({}, {})", val.sec, val.nsec),
 			Value::Map(val) => {
-				let it = val.iter_map().map(|x| match x {
+				let it = val.map(|x| match x {
 					Ok((k, v)) => (FmtError(Ok(k)), FmtError(Ok(v))),
 					Err(e) => (FmtError(Err(e)), FmtError(Err(e))),
 				});
 				f.debug_map().entries(it).finish()
 			}
 			Value::Seq(val) => {
-				let it = val.iter_seq().map(FmtError);
+				let it = val.map(FmtError);
 				f.debug_list().entries(it).finish()
 			}
 		}

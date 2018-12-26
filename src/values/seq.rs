@@ -5,6 +5,8 @@ use subfield::{subfield_length, write_subfield_length};
 use Argdata;
 use ArgdataRef;
 use ReadError;
+use SeqIterable;
+use SeqIterator;
 use Value;
 
 #[derive(Clone, Copy, Debug)]
@@ -58,7 +60,7 @@ where
 	where
 		'd: 'a,
 	{
-		Ok(Value::Seq(self))
+		Ok(Value::Seq(SeqIterator::new(self, 0)))
 	}
 
 	fn serialized_length(&self) -> usize {
@@ -80,7 +82,7 @@ where
 	}
 }
 
-impl<'d, T> ::Seq<'d> for Seq<'d, T>
+impl<'d, T> SeqIterable<'d> for Seq<'d, T>
 where
 	T: Container,
 	<T as Container>::Item: Argdata<'d>,
