@@ -63,7 +63,8 @@ fn debug_fmt() {
 		"{\"Hello\": \"World\", false: true, timestamp(485, 88045333): 5826009, null: {null: null}}"
 	);
 
-	let argdata = crate::encoded(&b"\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07"[..]);
+	let argdata =
+		crate::encoded(&b"\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07"[..]);
 
 	assert_eq!(
 		format!("{:?}", &argdata as &Argdata),

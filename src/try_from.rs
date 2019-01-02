@@ -4,6 +4,7 @@ pub trait TryFrom<T>: Sized {
 	fn try_from(value: T) -> Result<Self, Self::Error>;
 }
 
+#[rustfmt::skip]
 macro_rules! min_value {
 	(u64 => $to:ty) => { 0 };
 	(i64 => $to:ty) => { <$to>::min_value() };
