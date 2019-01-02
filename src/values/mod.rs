@@ -1,3 +1,5 @@
+#![allow(unreachable_pub)] // Pub items here are re-exported in lib.rs.
+
 mod encoded;
 pub use self::encoded::{encoded, encoded_with_fds, EncodedArgdata};
 

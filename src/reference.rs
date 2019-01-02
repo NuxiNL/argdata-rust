@@ -23,7 +23,7 @@ impl<'a, 'd: 'a> ArgdataRef<'a, 'd> {
 	}
 }
 
-pub enum Inner<'a, 'd: 'a> {
+enum Inner<'a, 'd: 'a> {
 	Encoded(values::EncodedArgdata<'d, &'a dyn fd::ConvertFd>),
 	Reference(&'a dyn Argdata<'d>),
 }

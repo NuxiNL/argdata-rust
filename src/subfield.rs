@@ -1,7 +1,7 @@
 use crate::ReadError;
 use std::io;
 
-pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
+pub(crate) fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
 	if data.is_empty() {
 		return (None, 0);
 	}
@@ -33,16 +33,16 @@ pub fn read_subfield(data: &[u8]) -> (Option<Result<&[u8], ReadError>>, usize) {
 	(Some(Ok(field)), len_bytes + len)
 }
 
-pub fn subfield_length_length(length: usize) -> usize {
+fn subfield_length_length(length: usize) -> usize {
 	let n_bits = 0usize.count_zeros() - (length | 1).leading_zeros();
 	((n_bits + 6) / 7) as usize
 }
 
-pub fn subfield_length(length: usize) -> usize {
+pub(crate) fn subfield_length(length: usize) -> usize {
 	subfield_length_length(length) + length
 }
 
-pub fn write_subfield_length(length: usize, writer: &mut dyn io::Write) -> io::Result<()> {
+pub(crate) fn write_subfield_length(length: usize, writer: &mut dyn io::Write) -> io::Result<()> {
 	let mut n = subfield_length_length(length);
 	while n != 0 {
 		n -= 1;
