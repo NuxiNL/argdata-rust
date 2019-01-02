@@ -178,7 +178,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 	}
 
 	fn serialized_length(&self) -> usize {
-		self.bytes().len()
+		self.encoded.len()
 	}
 
 	fn serialize(
@@ -187,29 +187,43 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		fd_map: Option<&mut fd::FdMapping>,
 	) -> io::Result<()> {
 		if let Some(fd_map) = fd_map {
-			match self.get_type() {
-				Ok(Type::Map) | Ok(Type::Seq) => {
-					let mut last_write_offset = 0;
-					let mut offset = 0;
-					while let Some(Ok(a)) = self.iter_subfield_next(&mut offset) {
-						writer.write_all(&self.bytes()[last_write_offset..offset + 1])?;
-						last_write_offset = offset + 1;
-						a.serialize(writer, Some(fd_map))?;
-					}
-					Ok(())
-				}
-				Ok(Type::Fd) => {
-					let efd = self.read_encoded_fd().unwrap_or(EncodedFd {
-						raw: !0,
-						convert_fd: &fd::NoConvert,
-					});
-					efd.serialize(writer, Some(fd_map))
-				}
-				_ => writer.write_all(self.bytes()),
-			}
+			rewrite_serialized(self.encoded, &self.convert_fd, writer, fd_map)
 		} else {
 			writer.write_all(self.bytes())
 		}
+	}
+}
+
+fn rewrite_serialized(
+	source: &[u8],
+	convert_fd: &fd::ConvertFd,
+	writer: &mut io::Write,
+	fd_map: &mut fd::FdMapping,
+) -> io::Result<()> {
+	let argdata = EncodedArgdata {
+		encoded: source,
+		convert_fd,
+	};
+	match argdata.get_type() {
+		Ok(Type::Map) | Ok(Type::Seq) => {
+			let mut last_write_offset = 0;
+			let mut offset = 1;
+			while let (Some(Ok(subfield)), n) = read_subfield(&source[offset..]) {
+				writer.write_all(&source[last_write_offset..offset + n - subfield.len()])?;
+				offset += n;
+				rewrite_serialized(subfield, convert_fd, writer, fd_map)?;
+				last_write_offset = offset;
+			}
+			writer.write_all(&source[last_write_offset..])
+		}
+		Ok(Type::Fd) => {
+			if let Ok(fd) = argdata.read_encoded_fd() {
+				fd.serialize(writer, Some(fd_map))
+			} else {
+				fd::InvalidFd.serialize(writer, None)
+			}
+		}
+		_ => writer.write_all(source),
 	}
 }
 
@@ -574,4 +588,69 @@ fn read_timestamp_test() {
 		encoded(b"\x08").read_timestamp(),
 		Err(NoFit::DifferentType.into()),
 	);
+}
+
+#[test]
+fn serialize_garbage_test() {
+	// Garbage should be let through unmodified when not rewriting file
+	// descriptors.
+	let mut v = Vec::new();
+	encoded(b"Foo Bar Baz").serialize(&mut v, None).unwrap();
+	assert_eq!(&v, b"Foo Bar Baz");
+}
+
+#[test]
+fn serialize_garbage_fd_test() {
+	// Garbage should be let through unmodified even when rewriting file
+	// descriptors.
+	let mut v = Vec::new();
+	let mut fds = Vec::new();
+	encoded(b"Foo Bar Baz")
+		.serialize(&mut v, Some(&mut fds))
+		.unwrap();
+	assert_eq!(&v, b"Foo Bar Baz");
+	assert_eq!(&fds, &[]);
+}
+
+#[test]
+fn serialize_invalid_fd_test() {
+	let mut v = Vec::new();
+	let mut fds = Vec::new();
+	encoded(b"\x03\x00\x00\x00\x01")
+		.serialize(&mut v, Some(&mut fds))
+		.unwrap();
+	assert_eq!(&v, b"\x03\xFF\xFF\xFF\xFF");
+	assert_eq!(&fds, &[]);
+}
+
+#[test]
+fn serialize_fd_test() {
+	let mut v = Vec::new();
+	let mut fds = Vec::new();
+	encoded_with_fds(b"\x03\x00\x00\x00\x07", fd::Identity)
+		.serialize(&mut v, Some(&mut fds))
+		.unwrap();
+	assert_eq!(&v, b"\x03\x00\x00\x00\x00");
+	assert_eq!(&fds, &[fd::Fd(7)]);
+}
+
+#[test]
+fn serialize_seq_fd_test() {
+	let mut v = Vec::new();
+	let mut fds = Vec::new();
+	let convert = fd::ConvertFdFn(|fd| Ok(fd::Fd(fd as i32 + 10)));
+	encoded_with_fds(b"\x07\x85\x03\x00\x00\x00\x07\x85\x03\x00\x00\x00\x06\x84\x08Hi\x00\x85\x03\x00\x00\x00\x07", convert).serialize(&mut v, Some(&mut fds)).unwrap();
+	assert_eq!(&v, b"\x07\x85\x03\x00\x00\x00\x00\x85\x03\x00\x00\x00\x01\x84\x08Hi\x00\x85\x03\x00\x00\x00\x00");
+	assert_eq!(&fds, &[fd::Fd(17), fd::Fd(16)]);
+}
+
+#[test]
+fn serialize_map_seq_fd_garbage_test() {
+	// Even though the map ends in garbage, the fds in the part before it
+	// should still be rewritten.
+	let mut v = Vec::new();
+	let mut fds = Vec::new();
+	encoded_with_fds(b"\x06\x98\x07\x85\x03\x00\x00\x00\x07\x85\x03\x00\x00\x00\x06\x84\x08Hi\x00\x85\x03\x00\x00\x00\x07\xFF\xFF", fd::Identity).serialize(&mut v, Some(&mut fds)).unwrap();
+	assert_eq!(&v, b"\x06\x98\x07\x85\x03\x00\x00\x00\x00\x85\x03\x00\x00\x00\x01\x84\x08Hi\x00\x85\x03\x00\x00\x00\x00\xFF\xFF");
+	assert_eq!(&fds, &[fd::Fd(7), fd::Fd(6)]);
 }
