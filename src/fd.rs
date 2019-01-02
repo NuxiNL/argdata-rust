@@ -116,3 +116,12 @@ impl<T> std::fmt::Debug for EncodedFd<T> {
 		write!(f, "EncodedFd(0x{:08X})", self.raw)
 	}
 }
+
+impl<F> std::fmt::Debug for ConvertFdFn<F>
+where
+	F: Fn(u32) -> Result<Fd, InvalidFd> + Sync,
+{
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "ConvertFdFn(..)")
+	}
+}

@@ -1,4 +1,5 @@
 use std::ffi::{CStr, FromBytesWithNulError};
+use std::fmt::Write;
 use std::str::Utf8Error;
 
 /// Represents a string value.
@@ -94,5 +95,32 @@ impl<'d> StrValue<'d> {
 			_ => &[], // Will trigger a missing-nul-terminator error.
 		};
 		CStr::from_bytes_with_nul(bytes)
+	}
+}
+
+impl<'d> std::fmt::Debug for StrValue<'d> {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self.inner {
+			Inner::BytesWithoutNul(data) => {
+				write!(f, "\"")?;
+				for byte in data.iter().flat_map(|&b| std::ascii::escape_default(b)) {
+					f.write_char(byte as char)?;
+				}
+				write!(f, "\" (without NUL terminator)")
+			}
+			Inner::BytesWithNul(data) => {
+				write!(f, "\"")?;
+				for byte in data[..data.len() - 1].iter().flat_map(|&b| std::ascii::escape_default(b)) {
+					f.write_char(byte as char)?;
+				}
+				write!(f, "\" (with NUL terminator)")
+			}
+			Inner::Str(data) => {
+				write!(f, "{:?} (checked UTF-8)", data)
+			}
+			Inner::CStr(data) => {
+				write!(f, "{:?} (with NUL terminator, without embedded NULs)", data)
+			}
+		}
 	}
 }

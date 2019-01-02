@@ -1,4 +1,5 @@
 #![deny(bare_trait_objects)]
+#![deny(missing_debug_implementations)]
 #![cfg_attr(feature = "nightly", feature(try_from))]
 
 //! **Please note:**
