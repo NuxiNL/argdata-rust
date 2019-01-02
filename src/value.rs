@@ -1,7 +1,7 @@
 use crate::{fd, IntValue, MapIterator, SeqIterator, StrValue, Timespec};
 
 /// The type of an argdata value.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
 	Null,
 	Binary,
