@@ -68,8 +68,8 @@ where
 
 	fn serialize(
 		&self,
-		writer: &mut io::Write,
-		mut fd_map: Option<&mut fd::FdMapping>,
+		writer: &mut dyn io::Write,
+		mut fd_map: Option<&mut dyn fd::FdMapping>,
 	) -> io::Result<()> {
 		writer.write_all(&[6])?;
 		for i in 0..self.items.len() {

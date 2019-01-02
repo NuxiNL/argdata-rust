@@ -151,7 +151,7 @@ impl<'a> IntValue<'a> {
 		}
 	}
 
-	pub fn serialize(&self, writer: &mut io::Write) -> io::Result<()> {
+	pub fn serialize(&self, writer: &mut dyn io::Write) -> io::Result<()> {
 		let value = match self.inner {
 			Inner::Unsigned(v) => v,
 			Inner::Signed(v) => v as u64,

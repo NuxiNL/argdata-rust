@@ -30,7 +30,7 @@ impl<'d> Argdata<'d> for Timestamp {
 		i128_serialized_length(self.nanoseconds()) + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[9])?;
 		let nsec = self.nanoseconds();
 		let n = i128_serialized_length(nsec);

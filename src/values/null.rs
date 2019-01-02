@@ -16,7 +16,7 @@ impl<'d> Argdata<'d> for Null {
 		0
 	}
 
-	fn serialize(&self, _: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, _: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		Ok(())
 	}
 }

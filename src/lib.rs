@@ -1,3 +1,4 @@
+#![deny(bare_trait_objects)]
 #![cfg_attr(feature = "nightly", feature(try_from))]
 
 //! **Please note:**
@@ -136,7 +137,7 @@ pub trait Argdata<'d>: Sync {
 	/// to an `Fd` might still fail.
 	///
 	/// Note: You probably want to use [`read_fd`](trait.ArgdataExt.html#tymethod.read_fd) instead.
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead>
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a dyn fd::ConvertFd>, NotRead>
 	where
 		'd: 'a,
 	{
@@ -215,8 +216,8 @@ pub trait Argdata<'d>: Sync {
 	/// file descriptors will be encoded as `-1` (invalid).
 	fn serialize(
 		&self,
-		writer: &mut io::Write,
-		fd_map: Option<&mut fd::FdMapping>,
+		writer: &mut dyn io::Write,
+		fd_map: Option<&mut dyn fd::FdMapping>,
 	) -> io::Result<()>;
 
 	/// The number of bytes that `self.serialize()` will write.
@@ -259,7 +260,7 @@ where
 // Fix/update/make Tests
 
 #[allow(dead_code)]
-fn example<'d>(ad: &Argdata<'d>) {
+fn example<'d>(ad: &dyn Argdata<'d>) {
 	// If this stops compiling, then something is wrong
 	// with the lifetimes of Argdata. :)
 

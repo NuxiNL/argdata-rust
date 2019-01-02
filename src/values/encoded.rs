@@ -83,7 +83,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a fd::ConvertFd>, NotRead>
+	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a dyn fd::ConvertFd>, NotRead>
 	where
 		'd: 'a,
 	{
@@ -183,8 +183,8 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 	fn serialize(
 		&self,
-		writer: &mut io::Write,
-		fd_map: Option<&mut fd::FdMapping>,
+		writer: &mut dyn io::Write,
+		fd_map: Option<&mut dyn fd::FdMapping>,
 	) -> io::Result<()> {
 		if let Some(fd_map) = fd_map {
 			rewrite_serialized(self.encoded, &self.convert_fd, writer, fd_map)
@@ -196,9 +196,9 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 
 fn rewrite_serialized(
 	source: &[u8],
-	convert_fd: &fd::ConvertFd,
-	writer: &mut io::Write,
-	fd_map: &mut fd::FdMapping,
+	convert_fd: &dyn fd::ConvertFd,
+	writer: &mut dyn io::Write,
+	fd_map: &mut dyn fd::FdMapping,
 ) -> io::Result<()> {
 	let argdata = EncodedArgdata {
 		encoded: source,

@@ -42,7 +42,7 @@ pub fn subfield_length(length: usize) -> usize {
 	subfield_length_length(length) + length
 }
 
-pub fn write_subfield_length(length: usize, writer: &mut io::Write) -> io::Result<()> {
+pub fn write_subfield_length(length: usize, writer: &mut dyn io::Write) -> io::Result<()> {
 	let mut n = subfield_length_length(length);
 	while n != 0 {
 		n -= 1;

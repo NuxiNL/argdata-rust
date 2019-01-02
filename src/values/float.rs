@@ -32,7 +32,7 @@ impl<'d> Argdata<'d> for Float {
 		9
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		let mut buf = [0; 9];
 		buf[0] = 5;
 		BigEndian::write_f64(&mut buf[1..], self.value);

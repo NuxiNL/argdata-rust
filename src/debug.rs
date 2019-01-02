@@ -19,7 +19,7 @@ impl<'a, 'd> fmt::Debug for ArgdataRef<'a, 'd> {
 	}
 }
 
-impl<'a, 'd> fmt::Debug for Argdata<'d> + 'a {
+impl<'a, 'd> fmt::Debug for dyn Argdata<'d> + 'a {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		FmtError(self.read()).fmt(f)
 	}
@@ -59,7 +59,7 @@ fn debug_fmt() {
 	);
 
 	assert_eq!(
-		format!("{:?}", &argdata as &Argdata),
+		format!("{:?}", &argdata as &dyn Argdata),
 		"{\"Hello\": \"World\", false: true, timestamp(485, 88045333): 5826009, null: {null: null}}"
 	);
 
@@ -67,7 +67,7 @@ fn debug_fmt() {
 		crate::encoded(&b"\x07\x81\x02\x82\x02\x01\x80\x87\x08Hello\x00\x81\x06\x81\x07"[..]);
 
 	assert_eq!(
-		format!("{:?}", &argdata as &Argdata),
+		format!("{:?}", &argdata as &dyn Argdata),
 		"[false, true, null, \"Hello\", {}, []]"
 	);
 }

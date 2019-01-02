@@ -37,7 +37,7 @@ where
 		IntValue::from(self.value).serialized_length() + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[5])?;
 		IntValue::from(self.value).serialize(writer)
 	}

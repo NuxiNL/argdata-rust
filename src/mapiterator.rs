@@ -3,7 +3,7 @@ use crate::{ArgdataRef, ReadError};
 /// An iterator, iterating over an argdata map.
 #[derive(Copy, Clone)]
 pub struct MapIterator<'a, 'd: 'a> {
-	map: &'a (MapIterable<'d> + 'a),
+	map: &'a (dyn MapIterable<'d> + 'a),
 	cookie: usize,
 }
 
@@ -43,7 +43,7 @@ impl<'a, 'd: 'a> MapIterator<'a, 'd> {
 	///
 	/// To get a map iterator over Argdata use
 	/// [`Argdata::read_map`](crate::Argdata::read_map).
-	pub fn new(map: &'a (MapIterable<'d> + 'a), cookie: usize) -> Self {
+	pub fn new(map: &'a (dyn MapIterable<'d> + 'a), cookie: usize) -> Self {
 		MapIterator { map, cookie }
 	}
 }

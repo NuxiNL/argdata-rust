@@ -3,7 +3,7 @@ use crate::{ArgdataRef, ReadError};
 /// An iterator, iterating over an argdata sequence.
 #[derive(Copy, Clone)]
 pub struct SeqIterator<'a, 'd: 'a> {
-	seq: &'a (SeqIterable<'d> + 'a),
+	seq: &'a (dyn SeqIterable<'d> + 'a),
 	cookie: usize,
 }
 
@@ -43,7 +43,7 @@ impl<'a, 'd: 'a> SeqIterator<'a, 'd> {
 	///
 	/// To get a seq iterator over Argdata use
 	/// [`Argdata::read_seq`](crate::Argdata::read_seq).
-	pub fn new(seq: &'a (SeqIterable<'d> + 'a), cookie: usize) -> Self {
+	pub fn new(seq: &'a (dyn SeqIterable<'d> + 'a), cookie: usize) -> Self {
 		SeqIterator { seq, cookie }
 	}
 }

@@ -21,7 +21,7 @@ pub enum Value<'a, 'd: 'a> {
 	Null,
 	Binary(&'d [u8]),
 	Bool(bool),
-	Fd(fd::EncodedFd<&'a fd::ConvertFd>),
+	Fd(fd::EncodedFd<&'a dyn fd::ConvertFd>),
 	Float(f64),
 	Int(IntValue<'d>),
 	Str(StrValue<'d>),

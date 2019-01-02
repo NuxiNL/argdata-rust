@@ -32,7 +32,7 @@ impl<'d> Argdata<'d> for Bool {
 		}
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		match self.value {
 			false => writer.write_all(&[2]),
 			true => writer.write_all(&[2, 1]),

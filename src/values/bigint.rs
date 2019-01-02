@@ -33,7 +33,7 @@ impl<'d> Argdata<'d> for BigInt<'d> {
 		self.bytes().len() + 1
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[5])?;
 		writer.write_all(self.bytes())?;
 		Ok(())

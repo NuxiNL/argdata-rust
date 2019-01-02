@@ -32,8 +32,8 @@ impl<'d> Argdata<'d> for fd::Fd {
 
 	fn serialize(
 		&self,
-		writer: &mut io::Write,
-		fd_map: Option<&mut fd::FdMapping>,
+		writer: &mut dyn io::Write,
+		fd_map: Option<&mut dyn fd::FdMapping>,
 	) -> io::Result<()> {
 		encoded_fd(self.0 as u32, fd::Identity).serialize(writer, fd_map)
 	}
@@ -53,8 +53,8 @@ impl<'d, T: fd::ConvertFd> Argdata<'d> for fd::EncodedFd<T> {
 
 	fn serialize(
 		&self,
-		writer: &mut io::Write,
-		fd_map: Option<&mut fd::FdMapping>,
+		writer: &mut dyn io::Write,
+		fd_map: Option<&mut dyn fd::FdMapping>,
 	) -> io::Result<()> {
 		let raw: u32 = if let Some(fd_map) = fd_map {
 			self.convert_fd
@@ -82,7 +82,7 @@ impl<'d> Argdata<'d> for fd::InvalidFd {
 		5
 	}
 
-	fn serialize(&self, writer: &mut io::Write, _: Option<&mut fd::FdMapping>) -> io::Result<()> {
+	fn serialize(&self, writer: &mut dyn io::Write, _: Option<&mut dyn fd::FdMapping>) -> io::Result<()> {
 		writer.write_all(&[5, 0xFF, 0xFF, 0xFF, 0xFF])
 	}
 }
