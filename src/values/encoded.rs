@@ -83,7 +83,7 @@ impl<'d, F: fd::ConvertFd> Argdata<'d> for EncodedArgdata<'d, F> {
 		}
 	}
 
-	fn read_encoded_fd<'a>(&'a self) -> Result<fd::EncodedFd<&'a dyn fd::ConvertFd>, NotRead>
+	fn read_encoded_fd<'a>(&'a self) -> Result<EncodedFd<&'a dyn fd::ConvertFd>, NotRead>
 	where
 		'd: 'a,
 	{
